@@ -1,0 +1,35 @@
+name: sake_tank_manager
+description: 日本酒製造工場のタンク管理アプリ
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  provider: ^6.0.5  # 状態管理
+  shared_preferences: ^2.2.0  # データ永続化
+  intl: ^0.19.0  # 国際化（日付書式など）
+  csv: ^5.0.2  # CSVファイル読み込み
+  collection: ^1.17.1  # 拡張コレクション機能
+  flutter_localizations:  # 日本語対応
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/tank_quick_reference.csv
+  fonts:
+    - family: NotoSansJP
+      fonts:
+        - asset: fonts/NotoSansJP-Regular.otf
+        - asset: fonts/NotoSansJP-Bold.otf
+          weight: 700
