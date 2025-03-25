@@ -214,6 +214,27 @@ class DilutionController extends ChangeNotifier {
     }
   }
 
+  /// 近似値からの入力更新
+  void updateFromInputApproximation(ApproximationPair pair) {
+    if (_selectedTank == null) {
+      return;
+    }
+
+    try {
+      if (_isUsingDipstick) {
+        // 検尺値から測定結果を更新
+        updateMeasurementFromDipstick(pair.data.dipstick);
+      } else {
+        // 容量から測定結果を更新
+        updateMeasurementFromVolume(pair.data.volume);
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      print('近似値からの入力更新エラー: $e');
+    }
+  }
+
   /// 割水計算を実行
   void calculateDilution({
     required double initialValue,
@@ -300,7 +321,8 @@ class DilutionController extends ChangeNotifier {
         personInCharge: currentResult.personInCharge,
       );
       
-      print('Updated result after approximation: ${_result!.toJson()}'); // デバッグ用
+      // ここを修正: toJson() → toMap()
+      print('Updated result after approximation: ${_result!.toMap()}');
       notifyListeners();
     } catch (e) {
       print('近似値からの更新エラー: $e');
@@ -313,7 +335,9 @@ class DilutionController extends ChangeNotifier {
     }
 
     try {
-      print('Saving result: ${_result!.toJson()}'); // 保存前のデータ確認
+      // ここを修正: toJson() → toMap()
+      print('Saving result: ${_result!.toMap()}');
+      
       if (_isEditMode && planId != null) {
         final plan = await _planManager.getPlanById(planId);
         if (plan == null) {

@@ -139,32 +139,32 @@ class _DilutionScreenState extends State<DilutionScreen> {
 
   /// 検尺値が変更された時の処理
   void _onDipstickChanged() {
-  if (_controller.isDipstickMode && _dipstickController.text.isNotEmpty) {
-    final dipstick = double.tryParse(_dipstickController.text);
-    if (dipstick != null) {
-      _controller.updateMeasurementFromDipstick(dipstick);
-      _isFinalValueConfirmed = false; // 入力変更で確定を解除
+    if (_controller.isDipstickMode && _dipstickController.text.isNotEmpty) {
+      final dipstick = double.tryParse(_dipstickController.text);
+      if (dipstick != null) {
+        _controller.updateMeasurementFromDipstick(dipstick);
+        _isFinalValueConfirmed = false; // 入力変更で確定を解除
+      }
+    }
+    if (_controller.result != null) {
+      _controller.clearResult();
+      _isFinalValueConfirmed = false;
     }
   }
-  if (_controller.result != null) {
-    _controller.clearResult();
-    _isFinalValueConfirmed = false;
-  }
-}
 
-void _onVolumeChanged() {
-  if (!_controller.isDipstickMode && _volumeController.text.isNotEmpty) {
-    final volume = double.tryParse(_volumeController.text);
-    if (volume != null) {
-      _controller.updateMeasurementFromVolume(volume);
-      _isFinalValueConfirmed = false; // 入力変更で確定を解除
+  void _onVolumeChanged() {
+    if (!_controller.isDipstickMode && _volumeController.text.isNotEmpty) {
+      final volume = double.tryParse(_volumeController.text);
+      if (volume != null) {
+        _controller.updateMeasurementFromVolume(volume);
+        _isFinalValueConfirmed = false; // 入力変更で確定を解除
+      }
+    }
+    if (_controller.result != null) {
+      _controller.clearResult();
+      _isFinalValueConfirmed = false;
     }
   }
-  if (_controller.result != null) {
-    _controller.clearResult();
-    _isFinalValueConfirmed = false;
-  }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -292,8 +292,6 @@ void _onVolumeChanged() {
     );
   }
 
-  /// 現在の状態入力カードを構築
-  /// 現在の状態入力カードを構築
   /// 現在の状態入力カードを構築
   Widget _buildCurrentStateCard(DilutionController controller) {
     final tank = controller.selectedTankInfo;
@@ -534,147 +532,137 @@ void _onVolumeChanged() {
 
   /// 計算ボタンを構築
   Widget _buildCalculateButton(DilutionController controller) {
-  return ElevatedButton.icon(
-    onPressed: () {
-      _calculateDilution(controller); // 計算を実行
-      if (controller.result != null && !controller.result!.hasError) {
-        _saveDilutionPlan(controller); // 計算が成功したら保存
-      }
-    },
-    icon: const Icon(Icons.save),
-    label: Text(controller.isEditMode ? '計画を更新' : '割水計画として保存'),
-    style: ElevatedButton.styleFrom(
-      minimumSize: const Size.fromHeight(50),
-      backgroundColor: Theme.of(context).colorScheme.primary,
-      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-      disabledBackgroundColor: Colors.grey[300],
-      disabledForegroundColor: Colors.grey[600],
-    ),
-  );
-}
-
-  /// 結果セクションを構築
-  /// 結果セクションを構築
-  Widget _buildResultSection(DilutionController controller) {
-  final result = controller.result!;
-  
-  if (result.hasError) {
-    return ResultCard.error(
-      title: '計算結果',
-      errorMessage: result.errorMessage ?? 'エラーが発生しました',
+    return ElevatedButton.icon(
+      onPressed: () => _calculateDilution(controller),
+      icon: const Icon(Icons.calculate),
+      label: const Text('計算する'),
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size.fromHeight(50),
+      ),
     );
   }
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      SectionCard(
+  /// 結果セクションを構築
+  Widget _buildResultSection(DilutionController controller) {
+    final result = controller.result!;
+    
+    if (result.hasError) {
+      return ResultCard.error(
         title: '計算結果',
-        icon: Icons.check_circle_outline,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ResultCard(
-              title: '追加水量',
-              resultText: '${result.waterAmount.toStringAsFixed(2)} L',
-              description: '${result.initialVolume.toStringAsFixed(2)} L から ${result.finalVolume.toStringAsFixed(2)} L に増加',
-              icon: Icons.water_drop,
-              color: Theme.of(context).colorScheme.primaryContainer,
-            ),
-            const SizedBox(height: 12.0),
-            ResultCard(
-              title: '最終アルコール度数',
-              resultText: '${result.finalAlcoholPercentage.toStringAsFixed(2)} %',
-              description: '初期: ${result.initialAlcoholPercentage.toStringAsFixed(2)} % → 目標: ${result.targetAlcoholPercentage.toStringAsFixed(2)} %',
-              icon: Icons.percent,
-              color: Theme.of(context).colorScheme.secondaryContainer,
-            ),
-            const SizedBox(height: 12.0),
-            ResultCard(
-              title: '最終検尺値',
-              resultText: '${result.finalDipstick.toStringAsFixed(1)} mm',
-              description: '初期: ${result.initialDipstick.toStringAsFixed(1)} mm',
-              icon: Icons.straighten,
-              color: Theme.of(context).colorScheme.tertiaryContainer,
-            ),
-          ],
-        ),
-      ),
-      if (controller.approximationPairs.isNotEmpty && !_isFinalValueConfirmed) ...[
-        const SizedBox(height: 12.0),
+        errorMessage: result.errorMessage ?? 'エラーが発生しました',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         SectionCard(
-          title: '最終容量の近似値選択',
-          icon: Icons.tune,
+          title: '計算結果',
+          icon: Icons.check_circle_outline,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '最終容量を調整するには、近似値から選択してください：',
-                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+              ResultCard(
+                title: '追加水量',
+                resultText: '${result.waterAmount.toStringAsFixed(2)} L',
+                description: '${result.initialVolume.toStringAsFixed(2)} L から ${result.finalVolume.toStringAsFixed(2)} L に増加',
+                icon: Icons.water_drop,
+                color: Theme.of(context).colorScheme.primaryContainer,
               ),
-              const SizedBox(height: 8.0),
-              _buildApproximationChips(controller),
+              const SizedBox(height: 12.0),
+              ResultCard(
+                title: '最終アルコール度数',
+                resultText: '${result.finalAlcoholPercentage.toStringAsFixed(2)} %',
+                description: '初期: ${result.initialAlcoholPercentage.toStringAsFixed(2)} % → 目標: ${result.targetAlcoholPercentage.toStringAsFixed(2)} %',
+                icon: Icons.percent,
+                color: Theme.of(context).colorScheme.secondaryContainer,
+              ),
+              const SizedBox(height: 12.0),
+              ResultCard(
+                title: '最終検尺値',
+                resultText: '${result.finalDipstick.toStringAsFixed(1)} mm',
+                description: '初期: ${result.initialDipstick.toStringAsFixed(1)} mm',
+                icon: Icons.straighten,
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+              ),
             ],
           ),
         ),
-      ],
-      const SizedBox(height: 20.0),
-      ElevatedButton.icon(
-        onPressed: () {
-          _calculateDilution(controller);
-          if (controller.result != null && !controller.result!.hasError) {
+        // ここを修正：常に近似値選択UIを表示する
+        if (controller.approximationPairs.isNotEmpty) ...[
+          const SizedBox(height: 12.0),
+          SectionCard(
+            title: '最終容量の近似値選択',
+            icon: Icons.tune,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '最終容量を調整するには、近似値から選択してください：',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                ),
+                const SizedBox(height: 8.0),
+                Wrap(
+                  spacing: 8.0,
+                  children: controller.approximationPairs.map((pair) {
+                    final isSelected = controller.result?.finalVolume == pair.data.volume;
+                    return ChoiceChip(
+                      label: Text('${pair.data.volume.toStringAsFixed(0)} L'),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          controller.updateFromApproximateVolume(pair.data.volume);
+                          setState(() {
+                            // 選択した値が確定したフラグを立てる
+                            _isFinalValueConfirmed = true;
+                          });
+                        }
+                      },
+                      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                      backgroundColor: Colors.grey[200],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        side: BorderSide(
+                          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+                          width: isSelected ? 2.0 : 1.0, // 選択時に縁取りを太く
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 20.0),
+        ElevatedButton.icon(
+          onPressed: () {
+            // 計算結果から保存
             _saveDilutionPlan(controller);
-          }
-        },
-        icon: const Icon(Icons.save),
-        label: Text(controller.isEditMode ? '計画を更新' : '割水計画として保存'),
-        style: ElevatedButton.styleFrom(
-          minimumSize: const Size.fromHeight(50),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        ),
-      ),
-      const SizedBox(height: 8.0),
-      TextButton.icon(
-        onPressed: () {
-          controller.clearResult();
-          setState(() { _isFinalValueConfirmed = false; });
-        },
-        icon: const Icon(Icons.refresh),
-        label: const Text('クリア'),
-      ),
-    ],
-  );
-}
-Widget _buildApproximationChips(DilutionController controller) {
-  return Wrap(
-    spacing: 8.0,
-    children: controller.approximationPairs.map((pair) {
-      final isSelected = controller.result?.finalVolume == pair.data.volume;
-      return ChoiceChip(
-        label: Text('${pair.data.volume.toStringAsFixed(0)} L'),
-        selected: isSelected,
-        onSelected: (selected) {
-          if (selected) {
-            controller.updateFromApproximateVolume(pair.data.volume);
-            setState(() {
-              _isFinalValueConfirmed = true; // 確定フラグを立てる
-            });
-          }
-        },
-        selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-        backgroundColor: Colors.grey[200],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          side: BorderSide(
-            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
-            width: isSelected ? 2.0 : 1.0, // 選択時に縁取りを太く
+          },
+          icon: const Icon(Icons.save),
+          label: Text(controller.isEditMode ? '計画を更新' : '割水計画として保存'),
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size.fromHeight(50),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
           ),
         ),
-      );
-    }).toList(),
-  );
-}
+        const SizedBox(height: 8.0),
+        TextButton.icon(
+          onPressed: () {
+            controller.clearResult();
+            setState(() { 
+              _isFinalValueConfirmed = false;
+            });
+          },
+          icon: const Icon(Icons.refresh),
+          label: const Text('クリア'),
+        ),
+      ],
+    );
+  }
+
   /// 割水計算を実行
   void _calculateDilution(DilutionController controller) {
     // フォームのバリデーション
@@ -720,8 +708,6 @@ Widget _buildApproximationChips(DilutionController controller) {
         personInCharge: personInCharge,
       );
 
-      // 編集モードかつ近似値がない場合は確定済みとする
-
     } catch (e) {
       ErrorHandler.showErrorSnackBar(
         context,
@@ -731,43 +717,41 @@ Widget _buildApproximationChips(DilutionController controller) {
   }
 
   /// 割水計画を保存
-  /// 割水計画を保存
-  /// 割水計画を保存
   Future<void> _saveDilutionPlan(DilutionController controller) async {
-  if (controller.result == null || controller.result!.hasError) {
-    ErrorHandler.showErrorSnackBar(
-      context,
-      '有効な計算結果がありません',
-    );
-    return;
-  }
-
-  // 最終値が確定していないかつ近似値がある場合は警告を表示
-  if (!_isFinalValueConfirmed && controller.approximationPairs.isNotEmpty) {
-    ErrorHandler.showErrorSnackBar(
-      context,
-      '最終容量の近似値を選択して確定してください',
-    );
-    return;
-  }
-
-  try {
-    await controller.saveDilutionPlan(widget.plan?.id);
-    
-    if (mounted) {
-      ErrorHandler.showSuccessSnackBar(
-        context,
-        controller.isEditMode ? '割水計画を更新しました' : '割水計画を保存しました',
-      );
-      Navigator.of(context).pop(true);
-    }
-  } catch (e) {
-    if (mounted) {
+    if (controller.result == null || controller.result!.hasError) {
       ErrorHandler.showErrorSnackBar(
         context,
-        '保存に失敗しました: $e',
+        '有効な計算結果がありません',
       );
+      return;
+    }
+
+    // 近似値がある場合のみ確定が必要
+    if (!_isFinalValueConfirmed && controller.approximationPairs.isNotEmpty) {
+      ErrorHandler.showErrorSnackBar(
+        context,
+        '最終容量の近似値を選択して確定してください',
+      );
+      return;
+    }
+
+    try {
+      await controller.saveDilutionPlan(widget.plan?.id);
+      
+      if (mounted) {
+        ErrorHandler.showSuccessSnackBar(
+          context,
+          controller.isEditMode ? '割水計画を更新しました' : '割水計画を保存しました',
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showErrorSnackBar(
+          context,
+          '保存に失敗しました: $e',
+        );
+      }
     }
   }
-}
 }
