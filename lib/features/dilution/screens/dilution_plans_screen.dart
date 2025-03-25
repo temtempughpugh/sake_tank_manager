@@ -3,9 +3,9 @@ import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/status_chip.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/error_handler.dart';
-import '../../../shared/widgets/status_chip.dart';
 import '../controllers/dilution_plan_manager.dart';
 import '../models/dilution_plan.dart';
+import '../screens/dilution_screen.dart'; 
 
 /// 割水計画一覧画面
 class DilutionPlansScreen extends StatefulWidget {
@@ -325,13 +325,17 @@ class _DilutionPlansScreenState extends State<DilutionPlansScreen> with SingleTi
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () {
-                    // TODO: 編集機能を実装
-                    Navigator.of(context).pushNamed('/dilution');
-                  },
-                  icon: const Icon(Icons.edit),
-                  label: const Text('編集'),
-                ),
+  onPressed: () {
+    // 編集モードで割水計画画面に遷移
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DilutionScreen(plan: plan),
+      ),
+    ).then((_) => _loadPlans()); // 戻ってきたら再読み込み
+  },
+  icon: const Icon(Icons.edit),
+  label: const Text('編集'),
+),
                 const SizedBox(width: 8.0),
                 ElevatedButton.icon(
                   onPressed: () => _confirmCompletePlan(plan),

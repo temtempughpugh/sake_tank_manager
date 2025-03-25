@@ -70,6 +70,17 @@ class DilutionPlanManager {
     if (!_isInitialized) await initialize();
     return List.unmodifiable(_plans.where((plan) => plan.isCompleted));
   }
+  
+  /// IDで計画を取得
+  Future<DilutionPlan?> getPlanById(String planId) async {
+    if (!_isInitialized) await initialize();
+    
+    try {
+      return _plans.firstWhere((plan) => plan.id == planId);
+    } catch (e) {
+      return null;
+    }
+  }
 
   /// 計画を追加
   Future<void> addPlan(DilutionPlan plan) async {

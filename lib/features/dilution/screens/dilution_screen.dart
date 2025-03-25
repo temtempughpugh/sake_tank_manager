@@ -4,17 +4,20 @@ import '../../../shared/widgets/tank_selector.dart';
 import '../../../shared/widgets/measurement_input.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../shared/widgets/result_card.dart';
-import '../../../shared/widgets/approximation_chips.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../core/utils/validators.dart';
 import '../controllers/dilution_controller.dart';
-
+import '../models/dilution_plan.dart';
+import '../../../shared/widgets/compact_approximation_chips.dart';
 
 /// 割水計算画面
 class DilutionScreen extends StatefulWidget {
+  /// 編集対象の割水計画（編集モードの場合）
+  final DilutionPlan? plan;
+
   /// コンストラクタ
-  const DilutionScreen({Key? key}) : super(key: key);
+  const DilutionScreen({Key? key, this.plan}) : super(key: key);
 
   @override
   State<DilutionScreen> createState() => _DilutionScreenState();
@@ -48,6 +51,9 @@ class _DilutionScreenState extends State<DilutionScreen> {
   /// 担当者コントローラー
   final TextEditingController _personInChargeController = TextEditingController();
 
+  /// 最終値が確定しているかどうか
+  bool _isFinalValueConfirmed = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,16 +63,61 @@ class _DilutionScreenState extends State<DilutionScreen> {
     
     // データの読み込み
     _controller.loadInitialData().then((_) {
-      // 前回選択されていたタンクがあれば復元
-      final lastTank = _controller.lastSelectedTank;
-      if (lastTank != null && lastTank.isNotEmpty) {
-        _controller.selectTank(lastTank);
+      // 編集モードの場合、計画のデータをロード
+      if (widget.plan != null) {
+        _loadPlanData(widget.plan!);
+      } else {
+        // 前回選択されていたタンクがあれば復元
+        final lastTank = _controller.lastSelectedTank;
+        if (lastTank != null && lastTank.isNotEmpty) {
+          _controller.selectTank(lastTank);
+        }
       }
     });
     
     // リスナーの設定
     _dipstickController.addListener(_onDipstickChanged);
     _volumeController.addListener(_onVolumeChanged);
+  }
+
+  /// 計画データを読み込んで画面に反映
+  void _loadPlanData(DilutionPlan plan) {
+    // 編集モードを設定
+    _controller.setEditMode(plan);
+    
+    // 結果を取得
+    final result = plan.result;
+    
+    // タンク番号を設定
+    _controller.selectTank(result.tankNumber);
+    
+    // 検尺/容量モードを設定（デフォルトは検尺モード）
+    _controller.setUsingDipstick(true);
+    
+    // 検尺値と容量を設定
+    _dipstickController.text = result.initialDipstick.toString();
+    _volumeController.text = result.initialVolume.toString();
+    
+    // アルコール度数を設定
+    _initialAlcoholController.text = result.initialAlcoholPercentage.toString();
+    _targetAlcoholController.text = result.targetAlcoholPercentage.toString();
+    
+    // 酒名と担当者を設定
+    if (result.sakeName != null) {
+      _sakeNameController.text = result.sakeName!;
+    }
+    if (result.personInCharge != null) {
+      _personInChargeController.text = result.personInCharge!;
+    }
+    
+    // 初期測定結果を更新
+    _controller.updateMeasurementFromDipstick(result.initialDipstick);
+    
+    // 計算を実行
+    _calculateDilution(_controller);
+    
+    // 最終値を確定済みとする
+    _isFinalValueConfirmed = true;
   }
 
   @override
@@ -88,23 +139,32 @@ class _DilutionScreenState extends State<DilutionScreen> {
 
   /// 検尺値が変更された時の処理
   void _onDipstickChanged() {
-    if (_controller.isDipstickMode && _dipstickController.text.isNotEmpty) {
-      final dipstick = double.tryParse(_dipstickController.text);
-      if (dipstick != null) {
-        _controller.updateMeasurementFromDipstick(dipstick);
-      }
+  if (_controller.isDipstickMode && _dipstickController.text.isNotEmpty) {
+    final dipstick = double.tryParse(_dipstickController.text);
+    if (dipstick != null) {
+      _controller.updateMeasurementFromDipstick(dipstick);
+      _isFinalValueConfirmed = false; // 入力変更で確定を解除
     }
   }
+  if (_controller.result != null) {
+    _controller.clearResult();
+    _isFinalValueConfirmed = false;
+  }
+}
 
-  /// 容量が変更された時の処理
-  void _onVolumeChanged() {
-    if (!_controller.isDipstickMode && _volumeController.text.isNotEmpty) {
-      final volume = double.tryParse(_volumeController.text);
-      if (volume != null) {
-        _controller.updateMeasurementFromVolume(volume);
-      }
+void _onVolumeChanged() {
+  if (!_controller.isDipstickMode && _volumeController.text.isNotEmpty) {
+    final volume = double.tryParse(_volumeController.text);
+    if (volume != null) {
+      _controller.updateMeasurementFromVolume(volume);
+      _isFinalValueConfirmed = false; // 入力変更で確定を解除
     }
   }
+  if (_controller.result != null) {
+    _controller.clearResult();
+    _isFinalValueConfirmed = false;
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +175,7 @@ class _DilutionScreenState extends State<DilutionScreen> {
           return Scaffold(
             key: _scaffoldKey,
             appBar: AppBar(
-              title: const Text('割水計算'),
+              title: Text(controller.isEditMode ? '割水計画編集' : '割水計算'),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.menu),
@@ -233,6 +293,8 @@ class _DilutionScreenState extends State<DilutionScreen> {
   }
 
   /// 現在の状態入力カードを構築
+  /// 現在の状態入力カードを構築
+  /// 現在の状態入力カードを構築
   Widget _buildCurrentStateCard(DilutionController controller) {
     final tank = controller.selectedTankInfo;
     
@@ -296,6 +358,14 @@ class _DilutionScreenState extends State<DilutionScreen> {
               }
               return null;
             },
+            onChanged: (value) {
+              if (controller.isDipstickMode && value.isNotEmpty) {
+                final dipstick = double.tryParse(value);
+                if (dipstick != null) {
+                  controller.updateMeasurementFromDipstick(dipstick);
+                }
+              }
+            },
           ),
           const SizedBox(height: 16.0),
           // 容量入力フィールド
@@ -329,6 +399,14 @@ class _DilutionScreenState extends State<DilutionScreen> {
               }
               return null;
             },
+            onChanged: (value) {
+              if (!controller.isDipstickMode && value.isNotEmpty) {
+                final volume = double.tryParse(value);
+                if (volume != null) {
+                  controller.updateMeasurementFromVolume(volume);
+                }
+              }
+            },
           ),
           if (controller.errorMessage != null) ...[
             const SizedBox(height: 16.0),
@@ -337,6 +415,25 @@ class _DilutionScreenState extends State<DilutionScreen> {
               style: TextStyle(
                 color: Theme.of(context).colorScheme.error,
               ),
+            ),
+          ],
+          
+          // 近似値候補の表示を追加（コンパクト版）
+          if (controller.inputApproximationPairs.isNotEmpty) ...[
+            const SizedBox(height: 12.0),
+            const Divider(height: 1),
+            const SizedBox(height: 6.0),
+            CompactApproximationChips(
+              approximations: controller.inputApproximationPairs,
+              isDipstickMode: controller.isDipstickMode,
+              onSelected: (pair) {
+                controller.updateFromInputApproximation(pair);
+                if (controller.isDipstickMode) {
+                  _dipstickController.text = pair.data.dipstick.toString();
+                } else {
+                  _volumeController.text = pair.data.volume.toString();
+                }
+              },
             ),
           ],
         ],
@@ -437,16 +534,26 @@ class _DilutionScreenState extends State<DilutionScreen> {
 
   /// 計算ボタンを構築
   Widget _buildCalculateButton(DilutionController controller) {
-    return ElevatedButton.icon(
-      onPressed: () => _calculateDilution(controller),
-      icon: const Icon(Icons.calculate),
-      label: const Text('割水計算を実行'),
-      style: ElevatedButton.styleFrom(
-        minimumSize: const Size.fromHeight(50),
-      ),
-    );
-  }
+  return ElevatedButton.icon(
+    onPressed: () {
+      _calculateDilution(controller); // 計算を実行
+      if (controller.result != null && !controller.result!.hasError) {
+        _saveDilutionPlan(controller); // 計算が成功したら保存
+      }
+    },
+    icon: const Icon(Icons.save),
+    label: Text(controller.isEditMode ? '計画を更新' : '割水計画として保存'),
+    style: ElevatedButton.styleFrom(
+      minimumSize: const Size.fromHeight(50),
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+      disabledBackgroundColor: Colors.grey[300],
+      disabledForegroundColor: Colors.grey[600],
+    ),
+  );
+}
 
+  /// 結果セクションを構築
   /// 結果セクションを構築
   Widget _buildResultSection(DilutionController controller) {
   final result = controller.result!;
@@ -467,7 +574,6 @@ class _DilutionScreenState extends State<DilutionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 追加水量
             ResultCard(
               title: '追加水量',
               resultText: '${result.waterAmount.toStringAsFixed(2)} L',
@@ -476,7 +582,6 @@ class _DilutionScreenState extends State<DilutionScreen> {
               color: Theme.of(context).colorScheme.primaryContainer,
             ),
             const SizedBox(height: 12.0),
-            // 最終アルコール度数
             ResultCard(
               title: '最終アルコール度数',
               resultText: '${result.finalAlcoholPercentage.toStringAsFixed(2)} %',
@@ -485,7 +590,6 @@ class _DilutionScreenState extends State<DilutionScreen> {
               color: Theme.of(context).colorScheme.secondaryContainer,
             ),
             const SizedBox(height: 12.0),
-            // 最終検尺値
             ResultCard(
               title: '最終検尺値',
               resultText: '${result.finalDipstick.toStringAsFixed(1)} mm',
@@ -496,8 +600,8 @@ class _DilutionScreenState extends State<DilutionScreen> {
           ],
         ),
       ),
-      if (controller.approximationPairs.isNotEmpty) ...[
-        const SizedBox(height: 16.0),
+      if (controller.approximationPairs.isNotEmpty && !_isFinalValueConfirmed) ...[
+        const SizedBox(height: 12.0),
         SectionCard(
           title: '最終容量の近似値選択',
           icon: Icons.tune,
@@ -505,26 +609,25 @@ class _DilutionScreenState extends State<DilutionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'より正確な計算結果を得るには、近似値から選択してください：',
-                style: Theme.of(context).textTheme.bodyMedium,
+                '最終容量を調整するには、近似値から選択してください：',
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               ),
-              const SizedBox(height: 12.0),
-              ApproximationChips(
-                approximations: controller.approximationPairs,
-                isDipstickMode: false, // 常に容量の近似値
-                onSelected: (pair) {
-                  controller.updateFromApproximateVolume(pair.data.volume);
-                },
-              ),
+              const SizedBox(height: 8.0),
+              _buildApproximationChips(controller),
             ],
           ),
         ),
       ],
-      const SizedBox(height: 24.0),
+      const SizedBox(height: 20.0),
       ElevatedButton.icon(
-        onPressed: () => _saveDilutionPlan(controller),
+        onPressed: () {
+          _calculateDilution(controller);
+          if (controller.result != null && !controller.result!.hasError) {
+            _saveDilutionPlan(controller);
+          }
+        },
         icon: const Icon(Icons.save),
-        label: const Text('割水計画として保存'),
+        label: Text(controller.isEditMode ? '計画を更新' : '割水計画として保存'),
         style: ElevatedButton.styleFrom(
           minimumSize: const Size.fromHeight(50),
           backgroundColor: Theme.of(context).colorScheme.primary,
@@ -535,6 +638,7 @@ class _DilutionScreenState extends State<DilutionScreen> {
       TextButton.icon(
         onPressed: () {
           controller.clearResult();
+          setState(() { _isFinalValueConfirmed = false; });
         },
         icon: const Icon(Icons.refresh),
         label: const Text('クリア'),
@@ -542,7 +646,35 @@ class _DilutionScreenState extends State<DilutionScreen> {
     ],
   );
 }
-
+Widget _buildApproximationChips(DilutionController controller) {
+  return Wrap(
+    spacing: 8.0,
+    children: controller.approximationPairs.map((pair) {
+      final isSelected = controller.result?.finalVolume == pair.data.volume;
+      return ChoiceChip(
+        label: Text('${pair.data.volume.toStringAsFixed(0)} L'),
+        selected: isSelected,
+        onSelected: (selected) {
+          if (selected) {
+            controller.updateFromApproximateVolume(pair.data.volume);
+            setState(() {
+              _isFinalValueConfirmed = true; // 確定フラグを立てる
+            });
+          }
+        },
+        selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+        backgroundColor: Colors.grey[200],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          side: BorderSide(
+            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+            width: isSelected ? 2.0 : 1.0, // 選択時に縁取りを太く
+          ),
+        ),
+      );
+    }).toList(),
+  );
+}
   /// 割水計算を実行
   void _calculateDilution(DilutionController controller) {
     // フォームのバリデーション
@@ -588,6 +720,8 @@ class _DilutionScreenState extends State<DilutionScreen> {
         personInCharge: personInCharge,
       );
 
+      // 編集モードかつ近似値がない場合は確定済みとする
+
     } catch (e) {
       ErrorHandler.showErrorSnackBar(
         context,
@@ -597,42 +731,43 @@ class _DilutionScreenState extends State<DilutionScreen> {
   }
 
   /// 割水計画を保存
+  /// 割水計画を保存
+  /// 割水計画を保存
   Future<void> _saveDilutionPlan(DilutionController controller) async {
-    if (controller.result == null || controller.result!.hasError) {
+  if (controller.result == null || controller.result!.hasError) {
+    ErrorHandler.showErrorSnackBar(
+      context,
+      '有効な計算結果がありません',
+    );
+    return;
+  }
+
+  // 最終値が確定していないかつ近似値がある場合は警告を表示
+  if (!_isFinalValueConfirmed && controller.approximationPairs.isNotEmpty) {
+    ErrorHandler.showErrorSnackBar(
+      context,
+      '最終容量の近似値を選択して確定してください',
+    );
+    return;
+  }
+
+  try {
+    await controller.saveDilutionPlan(widget.plan?.id);
+    
+    if (mounted) {
+      ErrorHandler.showSuccessSnackBar(
+        context,
+        controller.isEditMode ? '割水計画を更新しました' : '割水計画を保存しました',
+      );
+      Navigator.of(context).pop(true);
+    }
+  } catch (e) {
+    if (mounted) {
       ErrorHandler.showErrorSnackBar(
         context,
-        '有効な計算結果がありません',
+        '保存に失敗しました: $e',
       );
-      return;
-    }
-
-    try {
-      await controller.saveDilutionPlan();
-      
-      if (mounted) {
-        ErrorHandler.showSuccessSnackBar(
-          context,
-          '割水計画を保存しました',
-        );
-        
-        // 保存後に結果をクリア
-        controller.clearResult();
-        
-        // 入力値をクリア
-        _dipstickController.text = '';
-        _volumeController.text = '';
-        _initialAlcoholController.text = '';
-        _targetAlcoholController.text = '';
-        _sakeNameController.text = '';
-        _personInChargeController.text = '';
-      }
-    } catch (e) {
-      if (mounted) {
-        ErrorHandler.showErrorSnackBar(
-          context,
-          '保存に失敗しました: $e',
-        );
-      }
     }
   }
+}
 }
