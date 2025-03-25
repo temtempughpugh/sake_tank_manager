@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/approximation_pair.dart';
 import '../../core/utils/formatters.dart';
 
-/// 近似値チップウィジェット
+/// 近似値チップウィジェット（改善版）
 class ApproximationChips extends StatelessWidget {
   /// 近似値のリスト
   final List<ApproximationPair> approximations;
@@ -27,6 +27,25 @@ class ApproximationChips extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // 近似値を入力値との差に基づいてソート
+    final sortedApproximations = [...approximations]
+      ..sort((a, b) => a.absoluteDifference.compareTo(b.absoluteDifference));
+
+    // 差が負のもの（入力値より小さい）とそうでないものに分類
+    final smallerValues = sortedApproximations
+        .where((pair) => pair.difference < 0)
+        .toList()
+        ..sort((a, b) => b.difference.compareTo(a.difference)); // 入力値に近い順
+
+    final exactMatch = sortedApproximations
+        .where((pair) => pair.isExactMatch || pair.difference == 0)
+        .toList();
+
+    final largerValues = sortedApproximations
+        .where((pair) => pair.difference > 0)
+        .toList()
+        ..sort((a, b) => a.difference.compareTo(b.difference)); // 入力値に近い順
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -37,19 +56,47 @@ class ApproximationChips extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
+        if (exactMatch.isNotEmpty)
+          _buildChipSection(context, '完全一致', exactMatch),
+        if (smallerValues.isNotEmpty)
+          _buildChipSection(context, '入力値より小さい', smallerValues),
+        if (largerValues.isNotEmpty)
+          _buildChipSection(context, '入力値より大きい', largerValues),
+      ],
+    );
+  }
+
+  /// チップセクションを構築
+  Widget _buildChipSection(
+    BuildContext context,
+    String title,
+    List<ApproximationPair> pairs,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
         Wrap(
           spacing: 8.0,
           runSpacing: 8.0,
-          children: approximations.map((pair) => _buildChip(context, pair)).toList(),
+          children: pairs.map((pair) => _buildChip(context, pair, title)).toList(),
         ),
       ],
     );
   }
 
   /// 個々のチップを構築
-  Widget _buildChip(BuildContext context, ApproximationPair pair) {
-    final bool isHighlighted = pair.isExactMatch || pair.isClosest;
-    
+  Widget _buildChip(BuildContext context, ApproximationPair pair, String category) {
     // チップの表示テキスト（検尺または容量）
     final String valueText = isDipstickMode
         ? Formatters.dipstick(pair.data.dipstick)
@@ -64,19 +111,22 @@ class ApproximationChips extends StatelessWidget {
     Color chipColor;
     Color textColor;
     
-    if (pair.isExactMatch) {
-      // 完全一致（強調表示）
-      chipColor = Theme.of(context).colorScheme.primary;
-      textColor = Theme.of(context).colorScheme.onPrimary;
-    } else if (pair.isClosest) {
-      // 最近傍（弱い強調表示）
-      chipColor = Theme.of(context).colorScheme.primaryContainer;
-      textColor = Theme.of(context).colorScheme.onPrimaryContainer;
+    if (category == '完全一致') {
+      // 完全一致（緑系）
+      chipColor = Colors.green[100]!;
+      textColor = Colors.green[800]!;
+    } else if (category == '入力値より小さい') {
+      // 入力値より小さい（青系）
+      chipColor = Colors.blue[50]!;
+      textColor = Colors.blue[800]!;
     } else {
-      // 通常表示
-      chipColor = Theme.of(context).colorScheme.surface;
-      textColor = Theme.of(context).colorScheme.onSurface;
+      // 入力値より大きい（オレンジ系）
+      chipColor = Colors.orange[50]!;
+      textColor = Colors.orange[800]!;
     }
+
+    // 最近傍の値は枠線で強調
+    final bool isHighlighted = pair.isClosest || pair.isExactMatch;
 
     return ActionChip(
       label: Column(
@@ -87,6 +137,7 @@ class ApproximationChips extends StatelessWidget {
             style: TextStyle(
               color: textColor,
               fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
+              fontSize: 14,
             ),
           ),
           Text(
@@ -100,8 +151,8 @@ class ApproximationChips extends StatelessWidget {
       ),
       backgroundColor: chipColor,
       side: isHighlighted
-          ? BorderSide(color: Theme.of(context).colorScheme.primary)
-          : BorderSide(color: Colors.grey.shade300),
+          ? BorderSide(color: textColor, width: 1.5)
+          : BorderSide(color: Colors.grey[300]!),
       elevation: isHighlighted ? 2 : 0,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       onPressed: () => onSelected(pair),

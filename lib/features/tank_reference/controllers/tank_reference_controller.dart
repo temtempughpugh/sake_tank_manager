@@ -109,67 +109,74 @@ class TankReferenceController extends ChangeNotifier {
 
   /// 検尺から容量を計算
   void calculateDipstickToVolume(double dipstick) {
-    if (_selectedTank == null) {
-      _errorMessage = 'タンクを選択してください';
-      notifyListeners();
-      return;
-    }
-
-    try {
-      // 計算サービスで計算
-      final result = _calculationService.dipstickToVolume(_selectedTank!, dipstick);
-      
-      if (result.hasError) {
-        _errorMessage = result.errorMessage;
-        _result = null;
-      } else {
-        _errorMessage = null;
-        _result = result;
-      }
-      
-      // 近似値は使わないので空に
-      _approximationPairs = [];
-      
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = '計算中にエラーが発生しました: $e';
-      _result = null;
-      _approximationPairs = [];
-      notifyListeners();
-    }
+  if (_selectedTank == null) {
+    _errorMessage = 'タンクを選択してください';
+    notifyListeners();
+    return;
   }
 
-  /// 容量から検尺を計算
-  void calculateVolumeToDipstick(double volume) {
-    if (_selectedTank == null) {
-      _errorMessage = 'タンクを選択してください';
-      notifyListeners();
-      return;
-    }
-
-    try {
-      // 計算サービスで計算
-      final result = _calculationService.volumeToDipstick(_selectedTank!, volume);
-      
-      if (result.hasError) {
-        _errorMessage = result.errorMessage;
-        _result = null;
-      } else {
-        _errorMessage = null;
-        _result = result;
-      }
-      
-      // 近似値は使わないので空に
-      _approximationPairs = [];
-      
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = '計算中にエラーが発生しました: $e';
+  try {
+    // 計算サービスで計算
+    final result = _calculationService.dipstickToVolume(_selectedTank!, dipstick);
+    
+    if (result.hasError) {
+      _errorMessage = result.errorMessage;
       _result = null;
-      _approximationPairs = [];
-      notifyListeners();
+      _approximationPairs = []; // エラー時は空にする
+    } else {
+      _errorMessage = null;
+      _result = result;
+      
+      // 近似値検索を常に行う（完全一致でも行う）
+      _approximationPairs = _calculationService.findApproximateDipsticks(
+        _selectedTank!, 
+        dipstick
+      );
     }
+    
+    notifyListeners();
+  } catch (e) {
+    _errorMessage = '計算中にエラーが発生しました: $e';
+    _result = null;
+    _approximationPairs = [];
+    notifyListeners();
   }
+}
+
+void calculateVolumeToDipstick(double volume) {
+  if (_selectedTank == null) {
+    _errorMessage = 'タンクを選択してください';
+    notifyListeners();
+    return;
+  }
+
+  try {
+    // 計算サービスで計算
+    final result = _calculationService.volumeToDipstick(_selectedTank!, volume);
+    
+    if (result.hasError) {
+      _errorMessage = result.errorMessage;
+      _result = null;
+      _approximationPairs = []; // エラー時は空にする
+    } else {
+      _errorMessage = null;
+      _result = result;
+      
+      // 近似値検索を常に行う（完全一致でも行う）
+      _approximationPairs = _calculationService.findApproximateVolumes(
+        _selectedTank!, 
+        volume
+      );
+    }
+    
+    notifyListeners();
+  } catch (e) {
+    _errorMessage = '計算中にエラーが発生しました: $e';
+    _result = null;
+    _approximationPairs = [];
+    notifyListeners();
+  }
+}
 
   /// エラーをクリア
   void clearError() {

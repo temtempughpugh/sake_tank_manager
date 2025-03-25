@@ -47,6 +47,9 @@ class DilutionController extends ChangeNotifier {
   /// 検尺モードかどうかを取得
   bool get isUsingDipstick => _isUsingDipstick;
   
+  /// 検尺モードかどうかを取得（別名）
+  bool get isDipstickMode => _isUsingDipstick;
+  
   /// 測定結果を取得
   MeasurementResult? get measurementResult => _measurementResult;
   
@@ -172,53 +175,53 @@ class DilutionController extends ChangeNotifier {
 
   /// 割水計算を実行
   void calculateDilution({
-    required double initialValue,
-    required double initialAlcoholPercentage,
-    required double targetAlcoholPercentage,
-    String? sakeName,
-    String? personInCharge,
-  }) {
-    if (_selectedTank == null) {
-      _errorMessage = 'タンクを選択してください';
-      notifyListeners();
-      return;
-    }
+  required double initialValue,
+  required double initialAlcoholPercentage,
+  required double targetAlcoholPercentage,
+  String? sakeName,
+  String? personInCharge,
+}) {
+  if (_selectedTank == null) {
+    _errorMessage = 'タンクを選択してください';
+    notifyListeners();
+    return;
+  }
 
-    try {
-      // 割水計算を実行
-      final result = _calculationService.calculateDilution(
-        tankNumber: _selectedTank!,
-        initialValue: initialValue,
-        isUsingDipstick: _isUsingDipstick,
-        initialAlcohol: initialAlcoholPercentage,
-        targetAlcohol: targetAlcoholPercentage,
-        sakeName: sakeName,
-        personInCharge: personInCharge,
-      );
-      
-      if (result.hasError) {
-        _errorMessage = result.errorMessage;
-        _result = null;
-        _approximationPairs = [];
-      } else {
-        _errorMessage = null;
-        _result = result;
-        
-        // 近似値検索（容量）
-        _approximationPairs = _calculationService.findApproximateVolumes(
-          _selectedTank!,
-          result.finalVolume,
-        );
-      }
-      
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = '計算中にエラーが発生しました: $e';
+  try {
+    // 割水計算を実行
+    final result = _calculationService.calculateDilution(
+      tankNumber: _selectedTank!,
+      initialValue: initialValue,
+      isUsingDipstick: _isUsingDipstick,
+      initialAlcohol: initialAlcoholPercentage,
+      targetAlcohol: targetAlcoholPercentage,
+      sakeName: sakeName,
+      personInCharge: personInCharge,
+    );
+    
+    if (result.hasError) {
+      _errorMessage = result.errorMessage;
       _result = null;
       _approximationPairs = [];
-      notifyListeners();
+    } else {
+      _errorMessage = null;
+      _result = result;
+      
+      // 常に近似値検索を実行（完全一致でも行う）
+      _approximationPairs = _calculationService.findApproximateVolumes(
+        _selectedTank!,
+        result.finalVolume,
+      );
     }
+    
+    notifyListeners();
+  } catch (e) {
+    _errorMessage = '計算中にエラーが発生しました: $e';
+    _result = null;
+    _approximationPairs = [];
+    notifyListeners();
   }
+}
 
   /// 近似値から結果を更新
   void updateFromApproximateVolume(double volume) {

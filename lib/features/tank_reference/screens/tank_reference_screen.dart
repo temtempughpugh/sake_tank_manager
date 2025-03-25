@@ -115,10 +115,10 @@ class _TankReferenceScreenState extends State<TankReferenceScreen> with SingleTi
               ),
               const SizedBox(height: 16.0),
               _buildResult(controller),
-              if (controller.result != null && !controller.result!.isExactMatch && controller.approximationPairs.isNotEmpty) ...[
-                const SizedBox(height: 16.0),
-                _buildApproximationChips(controller),
-              ],
+              if (controller.result != null && controller.approximationPairs.isNotEmpty) ...[
+  const SizedBox(height: 16.0),
+  _buildApproximationChips(controller),
+]
             ],
           ),
         );
