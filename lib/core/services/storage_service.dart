@@ -127,30 +127,34 @@ class StorageService {
   /// - [key]: 保存キー
   /// - [list]: 保存するオブジェクトリスト
   /// - [toMap]: 各オブジェクトをMap<String, dynamic>に変換する関数
-  Future<bool> setObjectList<T>(
-    String key, 
-    List<T> list, 
-    Map<String, dynamic> Function(T item) toMap,
-  ) async {
-    final jsonList = list.map((item) => toMap(item)).toList();
-    return setObject(key, jsonList);
-  }
+  /// オブジェクトリストを保存
+Future<bool> setObjectList<T>(
+  String key, 
+  List<T> list, 
+  Map<String, dynamic> Function(T item) toMap,
+) async {
+  final jsonList = list.map((item) => toMap(item)).toList();
+  print('保存するデータ数: ${jsonList.length}');
+  return setObject(key, jsonList);
+}
 
-  /// オブジェクトリストを取得
-  /// - [key]: 取得キー
-  /// - [fromMap]: Map<String, dynamic>から各オブジェクトを生成する関数
-  /// - 戻り値: オブジェクトリスト（キーが存在しない場合は空リスト）
-  List<T> getObjectList<T>(
-    String key, 
-    T Function(Map<String, dynamic> map) fromMap,
-  ) {
-    final jsonList = getObject(key) as List<dynamic>?;
-    if (jsonList == null) return [];
-    
-    return jsonList
-        .map((item) => fromMap(item as Map<String, dynamic>))
-        .toList();
+/// オブジェクトリストを取得
+List<T> getObjectList<T>(
+  String key, 
+  T Function(Map<String, dynamic> map) fromMap,
+) {
+  final jsonList = getObject(key) as List<dynamic>?;
+  if (jsonList == null) {
+    print('データがロードできませんでした: $key');
+    return [];
   }
+  
+  final result = jsonList
+      .map((item) => fromMap(item as Map<String, dynamic>))
+      .toList();
+  print('読み込んだデータ数: ${result.length}');
+  return result;
+}
 
   // =================
   // アプリ設定

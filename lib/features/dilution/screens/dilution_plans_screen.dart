@@ -325,14 +325,7 @@ class _DilutionPlansScreenState extends State<DilutionPlansScreen> with SingleTi
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton.icon(
-  onPressed: () {
-    // 編集モードで割水計画画面に遷移
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => DilutionScreen(plan: plan),
-      ),
-    ).then((_) => _loadPlans()); // 戻ってきたら再読み込み
-  },
+  onPressed: () => _editPlan(context, plan),
   icon: const Icon(Icons.edit),
   label: const Text('編集'),
 ),

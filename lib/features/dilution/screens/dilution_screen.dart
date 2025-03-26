@@ -9,7 +9,9 @@ import '../../../core/utils/error_handler.dart';
 import '../../../core/utils/validators.dart';
 import '../controllers/dilution_controller.dart';
 import '../models/dilution_plan.dart';
+import '../../../core/models/approximation_pair.dart';
 import '../../../shared/widgets/compact_approximation_chips.dart';
+
 
 /// 割水計算画面
 class DilutionScreen extends StatefulWidget {
@@ -81,44 +83,72 @@ class _DilutionScreenState extends State<DilutionScreen> {
   }
 
   /// 計画データを読み込んで画面に反映
-  void _loadPlanData(DilutionPlan plan) {
-    // 編集モードを設定
-    _controller.setEditMode(plan);
-    
-    // 結果を取得
-    final result = plan.result;
-    
-    // タンク番号を設定
-    _controller.selectTank(result.tankNumber);
-    
-    // 検尺/容量モードを設定（デフォルトは検尺モード）
-    _controller.setUsingDipstick(true);
-    
-    // 検尺値と容量を設定
-    _dipstickController.text = result.initialDipstick.toString();
-    _volumeController.text = result.initialVolume.toString();
-    
-    // アルコール度数を設定
-    _initialAlcoholController.text = result.initialAlcoholPercentage.toString();
-    _targetAlcoholController.text = result.targetAlcoholPercentage.toString();
-    
-    // 酒名と担当者を設定
-    if (result.sakeName != null) {
-      _sakeNameController.text = result.sakeName!;
-    }
-    if (result.personInCharge != null) {
-      _personInChargeController.text = result.personInCharge!;
-    }
-    
-    // 初期測定結果を更新
-    _controller.updateMeasurementFromDipstick(result.initialDipstick);
-    
-    // 計算を実行
-    _calculateDilution(_controller);
-    
-    // 最終値を確定済みとする
-    _isFinalValueConfirmed = true;
+  /// 計画データを読み込んで画面に反映
+void _loadPlanData(DilutionPlan plan) {
+  // 編集モードを設定
+  _controller.setEditMode(plan);
+  
+  // 結果を取得
+  final result = plan.result;
+  
+  // タンク番号を設定
+  _controller.selectTank(result.tankNumber);
+  
+  // 検尺/容量モードを設定（デフォルトは検尺モード）
+  _controller.setUsingDipstick(true);
+  
+  // 検尺値と容量を設定
+  _dipstickController.text = result.initialDipstick.toString();
+  _volumeController.text = result.initialVolume.toString();
+  
+  // アルコール度数を設定
+  _initialAlcoholController.text = result.initialAlcoholPercentage.toString();
+  _targetAlcoholController.text = result.targetAlcoholPercentage.toString();
+  
+  // 酒名と担当者を設定
+  if (result.sakeName != null) {
+    _sakeNameController.text = result.sakeName!;
   }
+  if (result.personInCharge != null) {
+    _personInChargeController.text = result.personInCharge!;
+  }
+  
+  // 初期測定結果を更新
+  _controller.updateMeasurementFromDipstick(result.initialDipstick);
+  
+  // 計算を実行（ここで最終値を含めた結果を設定）
+  _calculateDilution(_controller);
+  
+  // 重要: 元の計画の最終値を設定
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    // UIが構築された後に実行
+    setState(() {
+      // 既存の近似値から元の計画の最終容量に最も近いものを選択する
+      final pairs = _controller.approximationPairs;
+      if (pairs.isNotEmpty) {
+        ApproximationPair? closestPair;
+        double minDiff = double.infinity;
+        
+        for (var pair in pairs) {
+          final diff = (pair.data.volume - result.finalVolume).abs();
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestPair = pair;
+          }
+        }
+        
+        if (closestPair != null) {
+          _controller.updateFromApproximateVolume(closestPair.data.volume);
+        }
+      }
+      
+      // 最終値を確定済みとする
+      _isFinalValueConfirmed = true;
+    });
+  });
+  
+  print('計画データをロードしました: ${plan.id}, タンク: ${result.tankNumber}, 最終容量: ${result.finalVolume}');
+}
 
   @override
   void dispose() {
@@ -670,63 +700,90 @@ class _DilutionScreenState extends State<DilutionScreen> {
   /// 割水計算を実行
   /// 割水計算を実行
   void _calculateDilution(DilutionController controller) {
-    // フォームのバリデーション
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    // 選択されたタンクの確認
-    if (controller.selectedTank == null) {
-      ErrorHandler.showErrorSnackBar(
-        context,
-        'タンクを選択してください',
-      );
-      return;
-    }
-    
-    // 測定結果の確認
-    if (controller.measurementResult == null) {
-      ErrorHandler.showErrorSnackBar(
-        context,
-        '検尺値または容量を入力し、測定結果を取得してください',
-      );
-      return;
-    }
-
-    try {
-      // 入力値の取得
-      final initialAlcohol = double.parse(_initialAlcoholController.text);
-      final targetAlcohol = double.parse(_targetAlcoholController.text);
-      
-      // 検尺または容量の値（すでに測定結果に反映されているため実際には使用されない）
-      final initialValue = controller.isDipstickMode ? 
-          double.parse(_dipstickController.text) : 
-          double.parse(_volumeController.text);
-      
-      final sakeName = _sakeNameController.text.isNotEmpty 
-          ? _sakeNameController.text 
-          : null;
-          
-      final personInCharge = _personInChargeController.text.isNotEmpty 
-          ? _personInChargeController.text 
-          : null;
-
-      // 割水計算の実行
-      controller.calculateDilution(
-        initialValue: initialValue,
-        initialAlcoholPercentage: initialAlcohol,
-        targetAlcoholPercentage: targetAlcohol,
-        sakeName: sakeName,
-        personInCharge: personInCharge,
-      );
-
-    } catch (e) {
-      ErrorHandler.showErrorSnackBar(
-        context,
-        '計算中にエラーが発生しました: $e',
-      );
-    }
+  // フォームのバリデーション
+  if (!_formKey.currentState!.validate()) {
+    return;
   }
+
+  // 選択されたタンクの確認
+  if (controller.selectedTank == null) {
+    ErrorHandler.showErrorSnackBar(
+      context,
+      'タンクを選択してください',
+    );
+    return;
+  }
+  
+  // 測定結果の確認
+  if (controller.measurementResult == null) {
+    ErrorHandler.showErrorSnackBar(
+      context,
+      '検尺値または容量を入力し、測定結果を取得してください',
+    );
+    return;
+  }
+
+  try {
+    // 入力値の取得
+    final initialAlcohol = double.parse(_initialAlcoholController.text);
+    final targetAlcohol = double.parse(_targetAlcoholController.text);
+    
+    // 検尺または容量の値
+    final initialValue = controller.isDipstickMode ? 
+        double.parse(_dipstickController.text) : 
+        double.parse(_volumeController.text);
+    
+    final sakeName = _sakeNameController.text.isNotEmpty 
+        ? _sakeNameController.text 
+        : null;
+        
+    final personInCharge = _personInChargeController.text.isNotEmpty 
+        ? _personInChargeController.text 
+        : null;
+
+    // 編集モードで元の計画がある場合、最終容量を保持
+    double? preservedFinalVolume;
+    if (controller.isEditMode && widget.plan != null && controller.result != null) {
+      preservedFinalVolume = widget.plan!.result.finalVolume;
+      print('元の計画の最終容量を保持: $preservedFinalVolume');
+    }
+
+    // 割水計算の実行
+    controller.calculateDilution(
+      initialValue: initialValue,
+      initialAlcoholPercentage: initialAlcohol,
+      targetAlcoholPercentage: targetAlcohol,
+      sakeName: sakeName,
+      personInCharge: personInCharge,
+    );
+
+    // 編集モードで保持した最終容量がある場合、その値に近い近似値を自動選択
+    if (preservedFinalVolume != null && controller.approximationPairs.isNotEmpty) {
+      ApproximationPair? closestPair;
+      double minDiff = double.infinity;
+      
+      for (var pair in controller.approximationPairs) {
+        final diff = (pair.data.volume - preservedFinalVolume).abs();
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestPair = pair;
+        }
+      }
+      
+      if (closestPair != null) {
+        print('元の計画に最も近い近似値を選択: ${closestPair.data.volume}');
+        controller.updateFromApproximateVolume(closestPair.data.volume);
+        _isFinalValueConfirmed = true;
+      }
+    }
+
+  } catch (e) {
+    ErrorHandler.showErrorSnackBar(
+      context,
+      '計算中にエラーが発生しました: $e',
+    );
+  }
+}
 
   /// 割水計画を保存
   Future<void> _saveDilutionPlan(DilutionController controller) async {

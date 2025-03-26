@@ -142,12 +142,37 @@ class DilutionController extends ChangeNotifier {
   }
   
   /// 編集モードを設定
-  void setEditMode(DilutionPlan plan) {
-    _isEditMode = true;
-    _editPlanId = plan.id;
-    notifyListeners();
+  /// 編集モードを設定
+/// 編集モードを設定
+void setEditMode(DilutionPlan plan) {
+  _isEditMode = true;
+  _editPlanId = plan.id;
+  
+  // 計画の結果データを設定
+  _result = plan.result;  
+  
+  // タンク選択
+  if (_selectedTank != plan.result.tankNumber) {
+    selectTank(plan.result.tankNumber);
   }
-
+  
+  // 測定結果を初期化
+  _measurementResult = MeasurementResult(
+    dipstick: plan.result.initialDipstick,
+    volume: plan.result.initialVolume,
+    isExactMatch: true
+  );
+  
+  // 最終容量の近似値を検索（重要）
+  if (_selectedTank != null) {
+    _approximationPairs = _calculationService.findApproximateVolumes(
+      _selectedTank!,
+      plan.result.finalVolume,
+    );
+  }
+  
+  notifyListeners();
+}
   /// 検尺値から測定結果を更新
   void updateMeasurementFromDipstick(double dipstick) {
     if (_selectedTank == null) {
@@ -354,32 +379,48 @@ class DilutionController extends ChangeNotifier {
   }
 
   /// 割水計画を保存
-  Future<void> saveDilutionPlan([String? planId]) async {
-    if (_result == null || _result!.hasError) {
-      throw Exception('有効な割水計算結果がありません');
-    }
-
-    try {
-      if (_isEditMode && planId != null) {
-        final plan = await _planManager.getPlanById(planId);
-        if (plan == null) {
-          throw Exception('更新する計画が見つかりません');
-        }
-        
-        final updatedPlan = plan.copyWith(result: _result!);
-        await _planManager.updatePlan(updatedPlan);
-      } else {
-        final plan = DilutionPlan(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          result: _result!,
-          createdAt: DateTime.now(),
-        );
-        await _planManager.addPlan(plan);
-      }
-    } catch (e) {
-      throw Exception('割水計画の保存に失敗しました: $e');
-    }
+  /// 割水計画を保存
+/// 割水計画を保存
+Future<void> saveDilutionPlan([String? planId]) async {
+  if (_result == null || _result!.hasError) {
+    throw Exception('有効な割水計算結果がありません');
   }
+
+  try {
+    await _planManager.initialize();
+    
+    if (_isEditMode && planId != null) {
+      final plan = await _planManager.getPlanById(planId);
+      if (plan == null) {
+        throw Exception('更新する計画が見つかりません');
+      }
+      
+      // 元の計画を更新
+      final updatedPlan = DilutionPlan(
+        id: plan.id,
+        result: _result!,
+        createdAt: plan.createdAt,
+        isCompleted: plan.isCompleted,
+        completedAt: plan.completedAt,
+      );
+      
+      print('計画更新: 元容量=${plan.result.finalVolume}, 新容量=${_result!.finalVolume}');
+      await _planManager.updatePlan(updatedPlan);
+    } else {
+      final plan = DilutionPlan(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        result: _result!,
+        createdAt: DateTime.now(),
+      );
+      await _planManager.addPlan(plan);
+      
+      print('新しい計画が追加されました: ${plan.id}, タンク: ${plan.result.tankNumber}');
+    }
+  } catch (e) {
+    print('割水計画の保存エラー: $e');
+    throw Exception('割水計画の保存に失敗しました: $e');
+  }
+}
 
   /// 結果をクリア
   void clearResult() {
