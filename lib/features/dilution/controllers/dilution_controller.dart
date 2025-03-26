@@ -131,6 +131,8 @@ class DilutionController extends ChangeNotifier {
     _isUsingDipstick = isUsingDipstick;
     _errorMessage = null;
     _measurementResult = null;
+    _result = null; // 結果もクリアする
+    _approximationPairs = [];
     _inputApproximationPairs = [];
     
     // 入力モードを保存
@@ -249,32 +251,56 @@ class DilutionController extends ChangeNotifier {
       return;
     }
 
+    if (_measurementResult == null) {
+      _errorMessage = '有効な測定結果がありません';
+      notifyListeners();
+      return;
+    }
+
     try {
-      // 割水計算を実行
-      final result = _calculationService.calculateDilution(
+      // 初期容量と初期検尺値を取得（測定結果から）
+      double initialDipstick = _measurementResult!.dipstick;
+      double initialVolume = _measurementResult!.volume;
+      
+      // アルコール量保存の原理に基づく計算
+      double waterAmount = initialVolume * (initialAlcoholPercentage / targetAlcoholPercentage) - initialVolume;
+      double finalVolume = initialVolume + waterAmount;
+      
+      // 最終検尺値の計算
+      final dipstickResult = _calculationService.volumeToDipstick(_selectedTank!, finalVolume);
+      if (dipstickResult.hasError) {
+        _errorMessage = dipstickResult.errorMessage;
+        _result = null;
+        _approximationPairs = [];
+        notifyListeners();
+        return;
+      }
+      
+      double finalDipstick = dipstickResult.dipstick;
+      
+      // 最終アルコール度数
+      double finalAlcohol = (initialVolume * initialAlcoholPercentage) / finalVolume;
+      
+      // 結果オブジェクトの作成
+      _result = DilutionResult(
         tankNumber: _selectedTank!,
-        initialValue: initialValue,
-        isUsingDipstick: _isUsingDipstick,
-        initialAlcohol: initialAlcoholPercentage,
-        targetAlcohol: targetAlcoholPercentage,
+        initialVolume: initialVolume,
+        initialDipstick: initialDipstick,
+        initialAlcoholPercentage: initialAlcoholPercentage,
+        targetAlcoholPercentage: targetAlcoholPercentage,
+        waterAmount: waterAmount,
+        finalVolume: finalVolume,
+        finalDipstick: finalDipstick,
+        finalAlcoholPercentage: finalAlcohol,
         sakeName: sakeName,
         personInCharge: personInCharge,
       );
       
-      if (result.hasError) {
-        _errorMessage = result.errorMessage;
-        _result = null;
-        _approximationPairs = [];
-      } else {
-        _errorMessage = null;
-        _result = result;
-        
-        // 常に近似値検索を実行（完全一致でも行う）
-        _approximationPairs = _calculationService.findApproximateVolumes(
-          _selectedTank!,
-          result.finalVolume,
-        );
-      }
+      // 近似値検索
+      _approximationPairs = _calculationService.findApproximateVolumes(
+        _selectedTank!,
+        finalVolume,
+      );
       
       notifyListeners();
     } catch (e) {
@@ -321,23 +347,19 @@ class DilutionController extends ChangeNotifier {
         personInCharge: currentResult.personInCharge,
       );
       
-      // ここを修正: toJson() → toMap()
-      print('Updated result after approximation: ${_result!.toMap()}');
       notifyListeners();
     } catch (e) {
       print('近似値からの更新エラー: $e');
     }
   }
 
+  /// 割水計画を保存
   Future<void> saveDilutionPlan([String? planId]) async {
     if (_result == null || _result!.hasError) {
       throw Exception('有効な割水計算結果がありません');
     }
 
     try {
-      // ここを修正: toJson() → toMap()
-      print('Saving result: ${_result!.toMap()}');
-      
       if (_isEditMode && planId != null) {
         final plan = await _planManager.getPlanById(planId);
         if (plan == null) {
@@ -361,10 +383,8 @@ class DilutionController extends ChangeNotifier {
 
   /// 結果をクリア
   void clearResult() {
-    _measurementResult = null;
     _result = null;
     _approximationPairs = [];
-    _inputApproximationPairs = [];
     _errorMessage = null;
     notifyListeners();
   }

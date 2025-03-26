@@ -589,6 +589,7 @@ class _DilutionScreenState extends State<DilutionScreen> {
           ),
         ),
         // ここを修正：常に近似値選択UIを表示する
+        // 近似値選択部分
         if (controller.approximationPairs.isNotEmpty) ...[
           const SizedBox(height: 12.0),
           SectionCard(
@@ -605,9 +606,11 @@ class _DilutionScreenState extends State<DilutionScreen> {
                 Wrap(
                   spacing: 8.0,
                   children: controller.approximationPairs.map((pair) {
-                    final isSelected = controller.result?.finalVolume == pair.data.volume;
+                    // 現在の最終容量と近似値の容量を比較して選択状態を決定
+                    final isSelected = controller.result != null && 
+                        (controller.result!.finalVolume - pair.data.volume).abs() < 0.001;
                     return ChoiceChip(
-                      label: Text('${pair.data.volume.toStringAsFixed(0)} L'),
+                      label: Text('${pair.data.volume.toStringAsFixed(1)} L'),
                       selected: isSelected,
                       onSelected: (selected) {
                         if (selected) {
@@ -634,6 +637,7 @@ class _DilutionScreenState extends State<DilutionScreen> {
             ),
           ),
         ],
+
         const SizedBox(height: 20.0),
         ElevatedButton.icon(
           onPressed: () {
@@ -664,6 +668,7 @@ class _DilutionScreenState extends State<DilutionScreen> {
   }
 
   /// 割水計算を実行
+  /// 割水計算を実行
   void _calculateDilution(DilutionController controller) {
     // フォームのバリデーション
     if (!_formKey.currentState!.validate()) {
@@ -678,18 +683,25 @@ class _DilutionScreenState extends State<DilutionScreen> {
       );
       return;
     }
+    
+    // 測定結果の確認
+    if (controller.measurementResult == null) {
+      ErrorHandler.showErrorSnackBar(
+        context,
+        '検尺値または容量を入力し、測定結果を取得してください',
+      );
+      return;
+    }
 
     try {
       // 入力値の取得
-      double initialValue;
-      if (controller.isDipstickMode) {
-        initialValue = double.parse(_dipstickController.text);
-      } else {
-        initialValue = double.parse(_volumeController.text);
-      }
-      
       final initialAlcohol = double.parse(_initialAlcoholController.text);
       final targetAlcohol = double.parse(_targetAlcoholController.text);
+      
+      // 検尺または容量の値（すでに測定結果に反映されているため実際には使用されない）
+      final initialValue = controller.isDipstickMode ? 
+          double.parse(_dipstickController.text) : 
+          double.parse(_volumeController.text);
       
       final sakeName = _sakeNameController.text.isNotEmpty 
           ? _sakeNameController.text 
