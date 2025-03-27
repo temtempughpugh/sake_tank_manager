@@ -578,6 +578,8 @@ class _BottlingScreenState extends State<BottlingScreen> {
     );
   }
 
+
+
   /// 日付選択ダイアログを表示
   Future<void> _selectDate(BuildContext context, BottlingController controller) async {
     final DateTime? picked = await showDatePicker(

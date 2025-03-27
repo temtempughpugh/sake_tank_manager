@@ -239,115 +239,127 @@ class _DilutionPlansScreenState extends State<DilutionPlansScreen> with SingleTi
 
   /// 計画アイテムを構築
   Widget _buildPlanItem(DilutionPlan plan, {required bool isActive}) {
-    final result = plan.result;
-    final expiringSoon = isActive && plan.daysSinceCreation >= 5 && plan.daysSinceCreation < 7;
-    final expired = isActive && plan.daysSinceCreation >= 7;
+  final result = plan.result;
+  final expiringSoon = isActive && plan.daysSinceCreation >= 5 && plan.daysSinceCreation < 7;
+  final expired = isActive && plan.daysSinceCreation >= 7;
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (result.sakeName != null && result.sakeName!.isNotEmpty)
-                Expanded(
-                  child: Text(
-                    result.sakeName!,
-                    style: Theme.of(context).textTheme.titleSmall,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                )
-              else
-                const Text('（酒名なし）', style: TextStyle(fontStyle: FontStyle.italic)),
-              _buildStatusChip(context, plan, expiringSoon, expired),
-            ],
-          ),
-          const SizedBox(height: 8.0),
-          Row(
-            children: [
-              const Icon(Icons.percent, size: 16),
-              const SizedBox(width: 4.0),
-              Text(
-                'アルコール度数: ${result.initialAlcoholPercentage.toStringAsFixed(2)}% → ${result.targetAlcoholPercentage.toStringAsFixed(2)}%',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4.0),
-          Row(
-            children: [
-              const Icon(Icons.water_drop, size: 16),
-              const SizedBox(width: 4.0),
-              Text(
-                '追加水量: ${result.waterAmount.toStringAsFixed(2)}L',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+  return Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (result.sakeName != null && result.sakeName!.isNotEmpty)
+              Expanded(
+                child: Text(
+                  result.sakeName!,
+                  style: Theme.of(context).textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4.0),
-          Row(
-            children: [
-              const Icon(Icons.straighten, size: 16),
-              const SizedBox(width: 4.0),
-              Text(
-                '検尺値: ${result.initialDipstick.toStringAsFixed(1)}mm → ${result.finalDipstick.toStringAsFixed(1)}mm',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4.0),
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 16),
-              const SizedBox(width: 4.0),
-              Text(
-                '計画日: ${Formatters.dateFormat(plan.createdAt)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(width: 8.0),
-              if (plan.isCompleted && plan.completedAt != null) ...[
-                const Icon(Icons.check_circle_outline, size: 14, color: Colors.green),
-                const SizedBox(width: 4.0),
-                Text(
-                  '完了日: ${Formatters.dateFormat(plan.completedAt!)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.green,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          if (isActive) ...[
-            const SizedBox(height: 12.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton.icon(
-  onPressed: () => _editPlan(context, plan),
-  icon: const Icon(Icons.edit),
-  label: const Text('編集'),
-),
-                const SizedBox(width: 8.0),
-                ElevatedButton.icon(
-                  onPressed: () => _confirmCompletePlan(plan),
-                  icon: const Icon(Icons.check_circle),
-                  label: const Text('完了'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
+              )
+            else
+              const Text('（酒名なし）', style: TextStyle(fontStyle: FontStyle.italic)),
+            _buildStatusChip(context, plan, expiringSoon, expired),
+          ],
+        ),
+        const SizedBox(height: 8.0),
+        Row(
+          children: [
+            const Icon(Icons.percent, size: 16),
+            const SizedBox(width: 4.0),
+            Text(
+              'アルコール度数: ${result.initialAlcoholPercentage.toStringAsFixed(2)}% → ${result.targetAlcoholPercentage.toStringAsFixed(2)}%',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
+        ),
+        const SizedBox(height: 4.0),
+        Row(
+          children: [
+            const Icon(Icons.water_drop, size: 16),
+            const SizedBox(width: 4.0),
+            Text(
+              '追加水量: ${result.waterAmount.toStringAsFixed(2)}L',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4.0),
+        Row(
+          children: [
+            const Icon(Icons.straighten, size: 16),
+            const SizedBox(width: 4.0),
+            Text(
+              '検尺値: ${result.initialDipstick.toStringAsFixed(1)}mm → ${result.finalDipstick.toStringAsFixed(1)}mm',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+        // 容量変化表示（新規追加）
+        const SizedBox(height: 4.0),
+        Row(
+          children: [
+            const Icon(Icons.water_drop_outlined, size: 16),
+            const SizedBox(width: 4.0),
+            Text(
+              '容量変化: ${result.initialVolume.toStringAsFixed(1)}L → ${result.finalVolume.toStringAsFixed(1)}L',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+        const SizedBox(height: 4.0),
+        Row(
+          children: [
+            const Icon(Icons.calendar_today, size: 16),
+            const SizedBox(width: 4.0),
+            Text(
+              '計画日: ${Formatters.dateFormat(plan.createdAt)}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(width: 8.0),
+            if (plan.isCompleted && plan.completedAt != null) ...[
+              const Icon(Icons.check_circle_outline, size: 14, color: Colors.green),
+              const SizedBox(width: 4.0),
+              Text(
+                '完了日: ${Formatters.dateFormat(plan.completedAt!)}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ],
+        ),
+        if (isActive) ...[
+          const SizedBox(height: 12.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => _editPlan(context, plan),
+                icon: const Icon(Icons.edit),
+                label: const Text('編集'),
+              ),
+              const SizedBox(width: 8.0),
+              ElevatedButton.icon(
+                onPressed: () => _confirmCompletePlan(plan),
+                icon: const Icon(Icons.check_circle),
+                label: const Text('完了'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
   /// ステータスチップを構築
   Widget _buildStatusChip(

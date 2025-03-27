@@ -183,4 +183,15 @@ List<T> getObjectList<T>(
   bool getLastInputMode() {
     return getBool('is_using_dipstick', defaultValue: true);
   }
+  /// 逆引きモード設定を保存
+/// - [isReverseMode]: 逆引きモードかどうか
+Future<bool> setReverseMode(bool isReverseMode) async {
+  return setBool('is_reverse_mode', isReverseMode);
+}
+
+/// 逆引きモード設定を取得
+/// - 戻り値: 逆引きモードかどうか
+bool getReverseMode() {
+  return getBool('is_reverse_mode', defaultValue: false);
+}
 }

@@ -33,6 +33,9 @@ class DilutionController extends ChangeNotifier {
   
   /// 検尺モードかどうか（trueなら検尺、falseなら容量）
   bool _isUsingDipstick = true;
+
+  /// 逆引きモードかどうか
+  bool _isReverseMode = false;
   
   /// 測定結果（検尺⇔容量変換用）
   MeasurementResult? _measurementResult;
@@ -63,6 +66,9 @@ class DilutionController extends ChangeNotifier {
   
   /// 検尺モードかどうかを取得（別名）
   bool get isDipstickMode => _isUsingDipstick;
+
+  /// 逆引きモードかどうかを取得
+  bool get isReverseMode => _isReverseMode;
   
   /// 測定結果を取得
   MeasurementResult? get measurementResult => _measurementResult;
@@ -99,23 +105,26 @@ class DilutionController extends ChangeNotifier {
   }
 
   /// 初期データを読み込む
-  Future<void> loadInitialData() async {
-    try {
-      // タンクデータの初期化
-      if (!_tankDataService.isInitialized) {
-        await _tankDataService.initialize();
-      }
-      
-      // 入力モード（検尺/容量）の設定を読み込み
-      _isUsingDipstick = _storageService.getLastInputMode();
-      
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = 'データの読み込みに失敗しました: $e';
-      notifyListeners();
+Future<void> loadInitialData() async {
+  try {
+    // タンクデータの初期化
+    if (!_tankDataService.isInitialized) {
+      await _tankDataService.initialize();
     }
+    
+    // 入力モード（検尺/容量）の設定を読み込み
+    _isUsingDipstick = _storageService.getLastInputMode();
+    
+    // 逆引きモードの設定を読み込み
+    _isReverseMode = _storageService.getReverseMode();
+    
+    notifyListeners();
+  } catch (e) {
+    _errorMessage = 'データの読み込みに失敗しました: $e';
+    notifyListeners();
   }
-
+}
+  
   /// タンクを選択
   void selectTank(String tankNumber) {
     _selectedTank = tankNumber;
@@ -426,6 +435,74 @@ Future<void> saveDilutionPlan([String? planId]) async {
     throw Exception('割水計画の保存に失敗しました: $e');
   }
 }
+
+/// 逆引きモードを設定
+void setReverseMode(bool isReverse) {
+  if (_isReverseMode != isReverse) {
+    _isReverseMode = isReverse;
+    _errorMessage = null;
+    _measurementResult = null;
+    _result = null;
+    _approximationPairs = [];
+    _inputApproximationPairs = [];
+    
+    // 設定を保存
+    _storageService.setReverseMode(isReverse);
+    
+    notifyListeners();
+  }
+}
+
+/// 逆引き割水計算を実行
+void calculateReverseDilution({
+  required double finalValue,
+  required double initialAlcoholPercentage,
+  required double targetAlcoholPercentage,
+  String? sakeName,
+  String? personInCharge,
+}) {
+  if (_selectedTank == null) {
+    _errorMessage = 'タンクを選択してください';
+    notifyListeners();
+    return;
+  }
+
+  try {
+    // 逆引き割水計算の実行
+    final result = _calculationService.calculateReverseDilution(
+      tankNumber: _selectedTank!,
+      finalValue: finalValue,
+      isUsingDipstick: _isUsingDipstick,
+      initialAlcoholPercentage: initialAlcoholPercentage,
+      targetAlcoholPercentage: targetAlcoholPercentage,
+      sakeName: sakeName,
+      personInCharge: personInCharge,
+    );
+    
+    if (result.hasError) {
+      _errorMessage = result.errorMessage;
+      _result = null;
+      _approximationPairs = [];
+    } else {
+      _errorMessage = null;
+      _result = result;
+      
+      // 蔵出し量の近似値を検索
+      _approximationPairs = _calculationService.findApproximateVolumes(
+        _selectedTank!, 
+        result.initialVolume
+      );
+    }
+    
+    notifyListeners();
+  } catch (e) {
+    _errorMessage = '計算中にエラーが発生しました: $e';
+    _result = null;
+    _approximationPairs = [];
+    notifyListeners();
+  }
+}
+
 
   /// 結果をクリア
   void clearResult() {

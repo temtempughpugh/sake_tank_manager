@@ -164,19 +164,20 @@ class MeasurementInput extends StatelessWidget {
 
   /// アルコール度数入力用のファクトリーコンストラクタ
   factory MeasurementInput.alcohol({
-    required TextEditingController controller,
-    FocusNode? focusNode,
-    Function(String)? onChanged,
-    Function(String)? onSubmitted,
-    String? Function(String?)? validator,
-    String? initialValue,
-    bool readOnly = false,
-    bool autofocus = false,
-  }) {
-    return MeasurementInput(
-      label: 'アルコール度数',
-      hint: '0.0 ~ 100.0',
-      controller: controller,
+  required TextEditingController controller,
+  FocusNode? focusNode,
+  Function(String)? onChanged,
+  Function(String)? onSubmitted,
+  String? Function(String?)? validator,
+  String? initialValue,
+  bool readOnly = false,
+  bool autofocus = false,
+  String label = 'アルコール度数',  // ラベルパラメーターを追加
+}) {
+  return MeasurementInput(
+    label: label,  // カスタムラベルを使用
+    hint: '0.0 ~ 100.0',
+    controller: controller,
       suffix: '%',
       focusNode: focusNode,
       onChanged: onChanged,

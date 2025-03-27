@@ -267,6 +267,19 @@ class CalculationService {
     return (initialVolume * initialAlcohol) / finalVolume;
   }
 
+// 逆引き: 割水後容量から蔵出し容量を計算
+double calculateInitialVolume(
+  double finalVolume,
+  double initialAlcoholPercentage,  // 元酒アルコール度数
+  double targetAlcoholPercentage    // 目標アルコール度数
+) {
+  // アルコール量保存の原理を逆に適用
+  return finalVolume * (targetAlcoholPercentage / initialAlcoholPercentage);
+}
+
+
+
+
   // ========================
   // 複合計算 (割水計算)
   // ========================
@@ -327,12 +340,14 @@ class CalculationService {
         initialVolume = volumeResult.volume;
       } else {
         initialVolume = initialValue;
-        final dipstickResult = volumeToDipstick(tankNumber, initialVolume);
-        
-        if (dipstickResult.hasError) {
-          return DilutionResult.error(tankNumber, dipstickResult.errorMessage!);
-        }
-        
+        // 蔵出し検尺値の計算 - ここを詳細にデバッグ・修正
+final dipstickResult = volumeToDipstick(tankNumber, initialVolume);
+print('DEBUG: 逆引き計算 - 蔵出し容量=$initialVolume L');
+print('DEBUG: volumeToDipstick 結果=${dipstickResult.dipstick} mm (エラー=${dipstickResult.hasError})');
+
+if (dipstickResult.hasError) {
+  return DilutionResult.error(tankNumber, dipstickResult.errorMessage!);
+}
         initialDipstick = dipstickResult.dipstick;
       }
 
@@ -376,4 +391,95 @@ class CalculationService {
       return DilutionResult.error(tankNumber, '計算エラー: $e');
     }
   }
+
+  // 逆引き割水計算を実行
+DilutionResult calculateReverseDilution({
+  required String tankNumber,
+  required double finalValue,  // 割水後の値（検尺または容量）
+  required bool isUsingDipstick,
+  required double initialAlcoholPercentage,
+  required double targetAlcoholPercentage,
+  String? sakeName,
+  String? personInCharge,
+}) {
+  // タンク情報取得とバリデーション
+  final tank = _tankDataService.getTank(tankNumber);
+  if (tank == null) {
+    return DilutionResult.error(tankNumber, 'タンク番号 $tankNumber が見つかりません');
+  }
+  
+  try {
+    // アルコール度数のバリデーション
+    if (initialAlcoholPercentage <= targetAlcoholPercentage) {
+      return DilutionResult.error(
+        tankNumber, 
+        '元酒アルコール度数(${initialAlcoholPercentage}%)は目標アルコール度数(${targetAlcoholPercentage}%)より大きい値にしてください'
+      );
+    }
+    
+    // 割水後の検尺/容量変換
+    double finalDipstick;
+    double finalVolume;
+    
+    if (isUsingDipstick) {
+      // 検尺から容量を計算
+      finalDipstick = finalValue;
+      final volumeResult = dipstickToVolume(tankNumber, finalDipstick);
+      if (volumeResult.hasError) {
+        return DilutionResult.error(tankNumber, volumeResult.errorMessage!);
+      }
+      finalVolume = volumeResult.volume;
+    } else {
+      // 容量から検尺を計算
+      finalVolume = finalValue;
+      final dipstickResult = volumeToDipstick(tankNumber, finalVolume);
+      if (dipstickResult.hasError) {
+        return DilutionResult.error(tankNumber, dipstickResult.errorMessage!);
+      }
+      finalDipstick = dipstickResult.dipstick;
+    }
+    
+    // 蔵出し容量の計算
+    final initialVolume = calculateInitialVolume(
+      finalVolume, 
+      initialAlcoholPercentage, 
+      targetAlcoholPercentage
+    );
+    
+    // 蔵出し容量のバリデーション
+    if (initialVolume < tank.minVolume) {
+      return DilutionResult.error(
+        tankNumber, 
+        '計算された蔵出し容量(${initialVolume.toStringAsFixed(1)}L)がタンクの最小容量(${tank.minVolume.toStringAsFixed(1)}L)未満です'
+      );
+    }
+    
+    // 蔵出し検尺値の計算
+    final dipstickResult = volumeToDipstick(tankNumber, initialVolume);
+    if (dipstickResult.hasError) {
+      return DilutionResult.error(tankNumber, dipstickResult.errorMessage!);
+    }
+    
+    final initialDipstick = dipstickResult.dipstick;
+    
+    // 追加水量
+    final waterAmount = finalVolume - initialVolume;
+    print('DEBUG: 設定される蔵出し検尺値=$initialDipstick mm');
+    
+    // DilutionResultオブジェクトを返す
+    return DilutionResult(
+      tankNumber: tankNumber,
+      initialVolume: initialVolume,
+      initialDipstick: initialDipstick,
+      initialAlcoholPercentage: initialAlcoholPercentage,
+      targetAlcoholPercentage: targetAlcoholPercentage,
+      waterAmount: waterAmount,
+      finalVolume: finalVolume,
+      finalDipstick: finalDipstick,
+      finalAlcoholPercentage: targetAlcoholPercentage,
+    );
+  } catch (e) {
+    return DilutionResult.error(tankNumber, '計算エラー: $e');
+  }
+}
 }
