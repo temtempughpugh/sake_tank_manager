@@ -396,4 +396,27 @@ class _DilutionPlansScreenState extends State<DilutionPlansScreen> with SingleTi
       }
     }
   }
+
+  Future<void> _editPlan(BuildContext context, DilutionPlan plan) async {
+  final result = await Navigator.of(context).push<bool>(
+    MaterialPageRoute(
+      builder: (context) => DilutionScreen(plan: plan),
+    ),
+  );
+  
+  // 編集が完了したら完全にリロード
+  if (mounted) {
+    // 計画マネージャを再初期化
+   await _planManager.initialize();
+    
+    setState(() {
+      _isLoading = true; // ローディング表示
+    });
+    
+    // データの完全リロード
+    await _loadPlans();
+    
+    print('編集画面から戻った後のリロード完了: ${plan.id}');
+  }
+}
 }

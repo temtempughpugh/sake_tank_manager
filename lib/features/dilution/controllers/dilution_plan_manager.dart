@@ -26,34 +26,18 @@ class DilutionPlanManager {
     _isInitialized = true;
   }
 
- /// 計画データの読み込み
-Future<void> _loadPlans() async {
-  setState(() {
-    _isLoading = true;
-  });
-
-  try {
-    // 計画マネージャーを再初期化
-    _planManager = DilutionPlanManager(); // この行を追加
-    
-    await _planManager.initialize();
-    final activePlans = await _planManager.getActivePlans();
-    final completedPlans = await _planManager.getCompletedPlans();
-
-    setState(() {
-      _activePlans = activePlans;
-      _completedPlans = completedPlans;
-      _isLoading = false;
-    });
-    
-    print("計画データの読み込み完了: アクティブ=${activePlans.length}, 完了済=${completedPlans.length}");
-  } catch (e) {
-    print('計画データの読み込みエラー: $e');
-    setState(() {
-      _isLoading = false;
-    });
+  /// 計画の読み込み
+  Future<void> _loadPlans() async {
+    try {
+      _plans = _storageService.getObjectList<DilutionPlan>(
+        _storageKey,
+        (map) => DilutionPlan.fromMap(map),
+      );
+    } catch (e) {
+      print('割水計画の読み込みエラー: $e');
+      _plans = [];
+    }
   }
-}
 
   /// 計画の保存
   Future<void> _savePlans() async {
@@ -107,37 +91,32 @@ Future<void> _loadPlans() async {
   }
 
   /// 計画を更新
-  /// 計画を更新
-/// 計画を更新
-Future<void> updatePlan(DilutionPlan plan) async {
-  if (!_isInitialized) await initialize();
-  
-  final index = _plans.indexWhere((p) => p.id == plan.id);
-  if (index == -1) {
-    throw Exception('更新する計画が見つかりません: ${plan.id}');
+  Future<void> updatePlan(DilutionPlan plan) async {
+    if (!_isInitialized) await initialize();
+    
+    final index = _plans.indexWhere((p) => p.id == plan.id);
+    if (index == -1) {
+      throw Exception('更新する計画が見つかりません: ${plan.id}');
+    }
+    
+    print('更新前プラン: ${_plans[index].result.finalVolume}');
+    print('更新後プラン: ${plan.result.finalVolume}');
+    
+    // 元の計画を新しい計画で置き換え
+    _plans[index] = plan;
+    
+    // 変更をストレージに保存
+    await _savePlans();
+    
+    // 確認のために再読み込み
+    _isInitialized = false;
+    await initialize();
+    
+    // 確認出力
+    final updatedPlan = _plans.firstWhere((p) => p.id == plan.id);
+    print('保存後の再読込プラン: ${updatedPlan.result.finalVolume}');
   }
-  
-  print('更新前プラン: ${_plans[index].result.finalVolume}');
-  print('更新後プラン: ${plan.result.finalVolume}');
-  
-  // 元の計画を新しい計画で置き換え
-  _plans[index] = plan;
-  
-  // 変更をストレージに保存
-  await _savePlans();
-  
-  // 強制的に再読み込み
-  _isInitialized = false;
-  await _loadPlans();
-  
-  // 検証
-  final updatedIndex = _plans.indexWhere((p) => p.id == plan.id);
-  if (updatedIndex != -1) {
-    print('保存後の再読込プラン: ${_plans[updatedIndex].result.finalVolume}');
-  } else {
-    print('エラー: 再読込後にプランが見つかりません: ${plan.id}');
-  }
-}
+
   /// 計画を削除
   Future<void> deletePlan(String planId) async {
     if (!_isInitialized) await initialize();
@@ -166,28 +145,5 @@ Future<void> updatePlan(DilutionPlan plan) async {
     return List.unmodifiable(
       _plans.where((plan) => plan.result.tankNumber == tankNumber),
     );
-  }
-}
-
-Future<void> _editPlan(BuildContext context, DilutionPlan plan) async {
-  final result = await Navigator.of(context).push<bool>(
-    MaterialPageRoute(
-      builder: (context) => DilutionScreen(plan: plan),
-    ),
-  );
-  
-  // 編集が完了したら完全にリロード
-  if (mounted) {
-    // 計画マネージャを再初期化
-    _planManager = DilutionPlanManager(); // インスタンスを新しく作り直す
-    
-    setState(() {
-      _isLoading = true; // ローディング表示
-    });
-    
-    // データの完全リロード
-    await _loadPlans();
-    
-    print('編集画面から戻った後のリロード完了: ${plan.id}');
   }
 }
