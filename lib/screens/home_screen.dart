@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
   /// 割水計画マネージャー
-  final DilutionPlanManager _planManager = DilutionPlanManager();
+  late DilutionPlanManager _planManager;
 
   /// 進行中の割水計画リスト
   List<DilutionPlan> _activeDilutionPlans = [];

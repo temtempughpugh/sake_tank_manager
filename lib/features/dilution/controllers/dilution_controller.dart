@@ -21,7 +21,12 @@ class DilutionController extends ChangeNotifier {
   final StorageService _storageService = StorageService();
   
   /// 割水計画マネージャー
-  final DilutionPlanManager _planManager = DilutionPlanManager();
+  late DilutionPlanManager _planManager;
+
+// コンストラクタを変更
+  DilutionController({required DilutionPlanManager planManager}) {
+    _planManager = planManager;
+  }
 
   /// 選択されたタンク番号
   String? _selectedTank;

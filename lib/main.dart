@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'app.dart';
 import 'core/services/tank_data_service.dart';
 import 'core/services/storage_service.dart';
+import 'package:provider/provider.dart';
+import 'features/dilution/controllers/dilution_plan_manager.dart';
 
 void main() async {
   // Flutterエンジンの初期化
@@ -17,8 +19,19 @@ void main() async {
   // サービスの初期化
   await _initializeServices();
 
+  // DilutionPlanManagerの初期化
+  final dilutionPlanManager = DilutionPlanManager();
+  await dilutionPlanManager.initialize();
+
   // アプリの起動
-  runApp(const SakeTankApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<DilutionPlanManager>.value(value: dilutionPlanManager),
+      ],
+      child: const SakeTankApp(),
+    ),
+  );
 }
 
 /// サービスの初期化

@@ -6,6 +6,7 @@ import '../../../core/utils/error_handler.dart';
 import '../controllers/dilution_plan_manager.dart';
 import '../models/dilution_plan.dart';
 import '../screens/dilution_screen.dart'; 
+import 'package:provider/provider.dart';
 
 /// 割水計画一覧画面
 class DilutionPlansScreen extends StatefulWidget {
@@ -24,7 +25,7 @@ class _DilutionPlansScreenState extends State<DilutionPlansScreen> with SingleTi
   late TabController _tabController;
 
   /// 割水計画マネージャー
-  final DilutionPlanManager _planManager = DilutionPlanManager();
+  late DilutionPlanManager _planManager;
   
   /// 進行中の計画リスト
   List<DilutionPlan> _activePlans = [];
@@ -39,6 +40,7 @@ class _DilutionPlansScreenState extends State<DilutionPlansScreen> with SingleTi
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _planManager = Provider.of<DilutionPlanManager>(context, listen: false);
     _loadPlans();
   }
 

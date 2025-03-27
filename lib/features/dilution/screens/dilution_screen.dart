@@ -11,6 +11,7 @@ import '../controllers/dilution_controller.dart';
 import '../models/dilution_plan.dart';
 import '../../../core/models/approximation_pair.dart';
 import '../../../shared/widgets/compact_approximation_chips.dart';
+import '../controllers/dilution_plan_manager.dart';
 
 
 /// 割水計算画面
@@ -60,8 +61,11 @@ class _DilutionScreenState extends State<DilutionScreen> {
   void initState() {
     super.initState();
     
+    // Providerから共有のDilutionPlanManagerを取得
+    final planManager = Provider.of<DilutionPlanManager>(context, listen: false);
+    
     // コントローラーの初期化
-    _controller = DilutionController();
+    _controller = DilutionController(planManager: planManager);
     
     // データの読み込み
     _controller.loadInitialData().then((_) {
