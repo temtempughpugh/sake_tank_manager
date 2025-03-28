@@ -351,20 +351,46 @@ void setEditMode(DilutionPlan plan) {
   }
 
   /// 近似値から結果を更新
-  void updateFromApproximateVolume(double volume) {
-    if (_result == null || _selectedTank == null) {
+  /// 近似値から結果を更新
+void updateFromApproximateVolume(double volume) {
+  if (_result == null || _selectedTank == null) {
+    return;
+  }
+
+  try {
+    final currentResult = _result!;
+    final dipstickResult = _calculationService.volumeToDipstick(_selectedTank!, volume);
+    
+    if (dipstickResult.hasError) {
+      print('Error in volumeToDipstick: ${dipstickResult.errorMessage}');
       return;
     }
-
-    try {
-      final currentResult = _result!;
-      final dipstickResult = _calculationService.volumeToDipstick(_selectedTank!, volume);
+    
+    // デバッグ用
+    print('DEBUG: 近似値選択 - 選択された容量: $volume L, 対応する検尺値: ${dipstickResult.dipstick} mm');
+    print('DEBUG: 更新前 - _isReverseMode: $_isReverseMode');
+    
+    if (_isReverseMode) {
+      // 逆引きモード: 蔵出し量を更新
+      final waterAmount = currentResult.finalVolume - volume;
       
-      if (dipstickResult.hasError) {
-        print('Error in volumeToDipstick: ${dipstickResult.errorMessage}');
-        return;
-      }
+      _result = DilutionResult(
+        tankNumber: currentResult.tankNumber,
+        initialVolume: volume, // 選択した蔵出し量
+        initialDipstick: dipstickResult.dipstick, // 対応する蔵出し検尺値
+        initialAlcoholPercentage: currentResult.initialAlcoholPercentage,
+        targetAlcoholPercentage: currentResult.targetAlcoholPercentage,
+        waterAmount: waterAmount,
+        finalVolume: currentResult.finalVolume, // 割水後量（固定）
+        finalDipstick: currentResult.finalDipstick, // 割水後検尺（固定）
+        finalAlcoholPercentage: currentResult.targetAlcoholPercentage,
+        sakeName: currentResult.sakeName,
+        personInCharge: currentResult.personInCharge,
+      );
       
+      print('DEBUG: 逆引きモード更新後 - 蔵出し量: ${_result!.initialVolume} L, 蔵出し検尺値: ${_result!.initialDipstick} mm');
+    } else {
+      // 通常モード: 最終容量を更新
       final finalAlcohol = _calculationService.calculateFinalAlcohol(
         currentResult.initialVolume,
         currentResult.initialAlcoholPercentage,
@@ -374,23 +400,26 @@ void setEditMode(DilutionPlan plan) {
       
       _result = DilutionResult(
         tankNumber: currentResult.tankNumber,
-        initialVolume: currentResult.initialVolume,
-        initialDipstick: currentResult.initialDipstick,
+        initialVolume: currentResult.initialVolume, // 蔵出し量（固定）
+        initialDipstick: currentResult.initialDipstick, // 蔵出し検尺（固定）
         initialAlcoholPercentage: currentResult.initialAlcoholPercentage,
         targetAlcoholPercentage: currentResult.targetAlcoholPercentage,
         waterAmount: waterAmount,
-        finalVolume: volume,
-        finalDipstick: dipstickResult.dipstick,
+        finalVolume: volume, // 選択した最終容量
+        finalDipstick: dipstickResult.dipstick, // 対応する最終検尺値
         finalAlcoholPercentage: finalAlcohol,
         sakeName: currentResult.sakeName,
         personInCharge: currentResult.personInCharge,
       );
       
-      notifyListeners();
-    } catch (e) {
-      print('近似値からの更新エラー: $e');
+      print('DEBUG: 通常モード更新後 - 最終容量: ${_result!.finalVolume} L, 最終検尺値: ${_result!.finalDipstick} mm');
     }
+    
+    notifyListeners();
+  } catch (e) {
+    print('近似値からの更新エラー: $e');
   }
+}
 
   /// 割水計画を保存
   /// 割水計画を保存

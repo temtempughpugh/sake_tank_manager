@@ -515,7 +515,7 @@ Widget _buildCurrentStateCard(DilutionController controller) {
           const SizedBox(height: 12.0),
           const Divider(height: 1),
           const SizedBox(height: 6.0),
-          ApproximationChips(
+          CompactApproximationChips(
             approximations: controller.inputApproximationPairs,
             isDipstickMode: controller.isDipstickMode,
             onSelected: (pair) {
@@ -721,27 +721,35 @@ Widget _buildResultSection(DilutionController controller) {
       ),
       
       // 近似値選択部分
-      if (controller.approximationPairs.isNotEmpty) ...[
-        const SizedBox(height: 12.0),
-        SectionCard(
-          title: controller.isReverseMode ? '蔵出し量の近似値選択' : '最終容量の近似値選択',
-          icon: Icons.tune,
-          child: ApproximationChips(
-            approximations: controller.approximationPairs,
-            isDipstickMode: false, // 容量の近似値を表示
-            onSelected: (pair) {
-              if (controller.isReverseMode) {
-                controller.updateFromApproximateVolume(pair.data.volume);
-              } else {
-                controller.updateFromApproximateVolume(pair.data.volume);
-              }
-              setState(() {
-                _isFinalValueConfirmed = true;
-              });
-            },
-          ),
+if (controller.approximationPairs.isNotEmpty) ...[
+  const SizedBox(height: 12.0),
+  SectionCard(
+    title: controller.isReverseMode ? '蔵出し量の近似値選択' : '最終容量の近似値選択',
+    icon: Icons.tune,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          controller.isReverseMode 
+            ? '蔵出し量を調整するには、近似値から選択してください：' 
+            : '最終容量を調整するには、近似値から選択してください：',
+          style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+        ),
+        const SizedBox(height: 8.0),
+        CompactApproximationChips(  // ApproximationChipsからCompactApproximationChipsに戻す
+          approximations: controller.approximationPairs,
+          isDipstickMode: false,  // 容量の近似値表示
+          onSelected: (pair) {
+            controller.updateFromApproximateVolume(pair.data.volume);
+            setState(() {
+              _isFinalValueConfirmed = true;
+            });
+          },
         ),
       ],
+    ),
+  ),
+],
       
       // 保存ボタン
       const SizedBox(height: 20.0),
