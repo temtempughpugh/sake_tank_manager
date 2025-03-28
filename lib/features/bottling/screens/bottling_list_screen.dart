@@ -235,162 +235,248 @@ class _BottlingListScreenState extends State<BottlingListScreen> {
   }
 
   /// 瓶詰め詳細を表示
-  void _showBottlingDetails(BuildContext context, BottlingInfo bottlingInfo) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          maxChildSize: 0.9,
-          minChildSize: 0.3,
-          expand: false,
-          builder: (context, scrollController) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        margin: const EdgeInsets.only(bottom: 16.0),
+  // lib/features/bottling/screens/bottling_list_screen.dart 内の _showBottlingDetails メソッドを以下のように修正
+
+void _showBottlingDetails(BuildContext context, BottlingInfo bottlingInfo) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      return DraggableScrollableSheet(
+        initialChildSize: 0.7, // より広く表示
+        maxChildSize: 0.9,
+        minChildSize: 0.3,
+        expand: false,
+        builder: (context, scrollController) {
+          return SingleChildScrollView(
+            controller: scrollController,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
                       ),
+                      margin: const EdgeInsets.only(bottom: 16.0),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '瓶詰め詳細',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
-                    const Divider(),
-                    const SizedBox(height: 16.0),
-                    // 基本情報
-                    Text(
-                      '基本情報',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '瓶詰め詳細（記帳用）',
+                        style: Theme.of(context).textTheme.headlineSmall,
                       ),
-                    ),
-                    const SizedBox(height: 8.0),
-                    _buildDetailItem('酒名', bottlingInfo.sakeName),
-                    _buildDetailItem('日付', Formatters.dateFormat(bottlingInfo.date)),
-                    _buildDetailItem('アルコール度数', '${bottlingInfo.alcoholPercentage.toStringAsFixed(1)}%'),
-                    if (bottlingInfo.temperature != null)
-                      _buildDetailItem('品温', '${bottlingInfo.temperature!.toStringAsFixed(1)}℃'),
-                    
-                    const SizedBox(height: 16.0),
-                    // 瓶種情報
-                    Text(
-                      '瓶種情報',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                    ),
-                    const SizedBox(height: 8.0),
-                    Table(
-                      columnWidths: const {
-                        0: FlexColumnWidth(2),
-                        1: FlexColumnWidth(1),
-                        2: FlexColumnWidth(1),
-                        3: FlexColumnWidth(1.5),
-                      },
-                      border: TableBorder.all(
-                        color: Colors.grey[300]!,
-                        width: 1,
-                      ),
-                      children: [
-                        TableRow(
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceVariant,
-                          ),
-                          children: [
-                            _buildTableHeader('瓶種'),
-                            _buildTableHeader('ケース'),
-                            _buildTableHeader('バラ'),
-                            _buildTableHeader('総容量(L)'),
-                          ],
-                        ),
-                        ...bottlingInfo.bottleEntries.map((entry) {
-                          return TableRow(
+                    ],
+                  ),
+                  const Divider(),
+                  
+                  // 基本情報ヘッダー
+                  Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _buildTableCell('${entry.bottleType.name}\n(${entry.bottleType.capacity}ml)'),
-                              _buildTableCell('${entry.cases}'),
-                              _buildTableCell('${entry.bottles}'),
-                              _buildTableCell('${entry.totalVolume.toStringAsFixed(1)}'),
+                              Text(
+                                '酒名: ${bottlingInfo.sakeName}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                              Text(
+                                Formatters.dateFormat(bottlingInfo.date),
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
                             ],
-                          );
-                        }).toList(),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 16.0),
-                    // 集計情報
-                    Text(
-                      '集計結果',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(height: 8.0),
+                          Text(
+                            'アルコール度数: ${bottlingInfo.alcoholPercentage.toStringAsFixed(1)}%',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          if (bottlingInfo.temperature != null) ...[
+                            const SizedBox(height: 4.0),
+                            Text(
+                              '品温: ${bottlingInfo.temperature!.toStringAsFixed(1)}℃',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8.0),
-                    _buildDetailItem('総本数', '${bottlingInfo.totalBottles}本'),
-                    _buildDetailItem('瓶詰め総量', '${bottlingInfo.totalVolume.toStringAsFixed(1)}L'),
-                    _buildDetailItem('詰残量', '${bottlingInfo.remainingAmount}本分 (${(bottlingInfo.remainingAmount * 1.8).toStringAsFixed(1)}L)'),
-                    _buildDetailItem('合計容量', '${bottlingInfo.totalVolumeWithRemaining.toStringAsFixed(1)}L', 
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                  ),
+                  
+                  const SizedBox(height: 16.0),
+                  // 瓶種情報テーブル（記帳向け最適化）
+                  Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '瓶詰め数量明細',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 12.0),
+                          
+                          // テーブルヘッダー
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            decoration: BoxDecoration(
+                              border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+                              color: Colors.grey[100],
+                            ),
+                            child: Row(
+                              children: const [
+                                Expanded(flex: 3, child: Text('瓶種', style: TextStyle(fontWeight: FontWeight.bold))),
+                                Expanded(flex: 1, child: Text('ケース', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                Expanded(flex: 1, child: Text('バラ', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                Expanded(flex: 1, child: Text('本数', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                Expanded(flex: 2, child: Text('容量(L)', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                Expanded(flex: 2, child: Text('純アル(L)', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                              ],
+                            ),
+                          ),
+                          
+                          // 瓶種ごとの行
+                          ...bottlingInfo.bottleEntries.map((entry) {
+                            final pureAlcohol = entry.totalVolume * bottlingInfo.alcoholPercentage / 100;
+                            return Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              decoration: BoxDecoration(
+                                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3, 
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(entry.bottleType.name),
+                                        Text('${entry.bottleType.capacity}ml', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(flex: 1, child: Text('${entry.cases}', textAlign: TextAlign.center)),
+                                  Expanded(flex: 1, child: Text('${entry.bottles}', textAlign: TextAlign.center)),
+                                  Expanded(flex: 1, child: Text('${entry.totalBottles}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                                  Expanded(flex: 2, child: Text(entry.totalVolume.toStringAsFixed(1), textAlign: TextAlign.center)),
+                                  Expanded(flex: 2, child: Text(pureAlcohol.toStringAsFixed(2), textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.primary))),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          
+                          // 詰め残行
+                          if (bottlingInfo.remainingAmount > 0) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              decoration: BoxDecoration(
+                                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                                color: Colors.grey[50],
+                              ),
+                              child: Row(
+                                children: [
+                                  const Expanded(flex: 3, child: Text('詰め残', style: TextStyle(fontStyle: FontStyle.italic))),
+                                  const Expanded(flex: 1, child: Text('')),
+                                  const Expanded(flex: 1, child: Text('')),
+                                  Expanded(flex: 1, child: Text('${bottlingInfo.remainingAmount.toStringAsFixed(1)}', textAlign: TextAlign.center)),
+                                  Expanded(flex: 2, child: Text('${(bottlingInfo.remainingAmount * 1.8).toStringAsFixed(1)}', textAlign: TextAlign.center)),
+                                  Expanded(
+                                    flex: 2, 
+                                    child: Text(
+                                      '${((bottlingInfo.remainingAmount * 1.8) * bottlingInfo.alcoholPercentage / 100).toStringAsFixed(2)}', 
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          
+                          // 合計行
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10.0),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                            ),
+                            child: Row(
+                              children: [
+                                const Expanded(flex: 3, child: Text('合計', style: TextStyle(fontWeight: FontWeight.bold))),
+                                const Expanded(flex: 1, child: Text('')),
+                                const Expanded(flex: 1, child: Text('')),
+                                Expanded(flex: 1, child: Text('${bottlingInfo.totalBottles}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                                Expanded(
+                                  flex: 2, 
+                                  child: Text(
+                                    bottlingInfo.totalVolumeWithRemaining.toStringAsFixed(1), 
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2, 
+                                  child: Text(
+                                    bottlingInfo.pureAlcoholAmount.toStringAsFixed(2), 
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const Divider(),
-                    _buildDetailItem('純アルコール量', '${bottlingInfo.pureAlcoholAmount.toStringAsFixed(1)}L',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                  ),
+                  
+                  const SizedBox(height: 24.0),
+                  // アクションボタン
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _editBottlingInfo(context, bottlingInfo);
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text('編集'),
                       ),
-                    ),
-                    
-                    const SizedBox(height: 24.0),
-                    // アクションボタン
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            _editBottlingInfo(context, bottlingInfo);
-                          },
-                          icon: const Icon(Icons.edit),
-                          label: const Text('編集'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   /// 詳細アイテムを構築
   Widget _buildDetailItem(

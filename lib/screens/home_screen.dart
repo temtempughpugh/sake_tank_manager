@@ -12,10 +12,11 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+/// ホーム画面の状態クラス
+class HomeScreenState extends State<HomeScreen> {
   /// Scaffoldキー (ドロワー表示用)
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _planManager = DilutionPlanManager(); // インスタンス作成
     _loadData();
   }
 
@@ -49,6 +51,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _activeDilutionPlans = activePlans;
         _isLoading = false;
       });
+      
+      // デバッグ出力
+      print('読み込まれた割水計画数: ${_activeDilutionPlans.length}');
     } catch (e) {
       print('データの読み込みエラー: $e');
       setState(() {
@@ -174,6 +179,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 割水セクションを構築
   Widget _buildDilutionSection(BuildContext context) {
+    print('割水計画セクション構築: ${_activeDilutionPlans.length}件');
+    
     return SectionCard(
       title: '割水作業',
       icon: Icons.water_drop,
@@ -234,21 +241,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 瓶詰めセクションを構築
   Widget _buildBottlingSection(BuildContext context) {
-    // 将来的には実際のデータを表示
-    return SectionCard(
-      title: '瓶詰め作業',
-      icon: Icons.liquor,
-      actionText: '全て見る',
-      action: IconButton(
-        icon: const Icon(Icons.arrow_forward),
-        onPressed: () {
-          _showDevelopmentSnackBar(context);
-        },
-        tooltip: '瓶詰め一覧',
-      ),
-      child: _buildEmptyMessage('進行中の瓶詰め作業はありません'),
-    );
-  }
+  // 将来的には実際のデータを表示
+  return SectionCard(
+    title: '瓶詰め作業',
+    icon: Icons.liquor,
+    actionText: '全て見る',
+    action: IconButton(
+      icon: const Icon(Icons.arrow_forward),
+      onPressed: () {
+        Navigator.of(context).pushNamed('/bottling-list');
+      },
+      tooltip: '瓶詰め一覧',
+    ),
+    child: _buildEmptyMessage('進行中の瓶詰め作業はありません'),
+  );
+}
+
 
   /// 空の状態メッセージを構築
   Widget _buildEmptyMessage(String message) {
@@ -346,59 +354,59 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 新規プロセスダイアログを表示
   void _showNewProcessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('新規作業'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.water_drop),
-              title: const Text('割水計算'),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pushNamed('/dilution');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.local_fire_department),
-              title: const Text('火入れ'),
-              enabled: false,
-              onTap: () {
-                Navigator.of(context).pop();
-                _showDevelopmentSnackBar(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.filter_alt),
-              title: const Text('ろ過'),
-              enabled: false,
-              onTap: () {
-                Navigator.of(context).pop();
-                _showDevelopmentSnackBar(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.liquor),
-              title: const Text('瓶詰め'),
-              enabled: false,
-              onTap: () {
-                Navigator.of(context).pop();
-                _showDevelopmentSnackBar(context);
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('キャンセル'),
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('新規作業'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.water_drop),
+            title: const Text('割水計算'),
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushNamed('/dilution');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.local_fire_department),
+            title: const Text('火入れ'),
+            enabled: false,
+            onTap: () {
+              Navigator.of(context).pop();
+              _showDevelopmentSnackBar(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.filter_alt),
+            title: const Text('ろ過'),
+            enabled: false,
+            onTap: () {
+              Navigator.of(context).pop();
+              _showDevelopmentSnackBar(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.liquor),
+            title: const Text('瓶詰め'),
+            enabled: true,  // false から true に変更
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushNamed('/bottling');  // 開発中スナックバーから実際のナビゲーションに変更
+            },
           ),
         ],
       ),
-    );
-  }
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('キャンセル'),
+        ),
+      ],
+    ),
+  );
+}
 
   /// 計画を完了としてマークする
   Future<void> _markPlanAsCompleted(BuildContext context, DilutionPlan plan) async {

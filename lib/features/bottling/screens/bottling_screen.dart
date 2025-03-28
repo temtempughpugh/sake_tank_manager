@@ -473,46 +473,88 @@ class _BottlingScreenState extends State<BottlingScreen> {
 
   /// 結果カードを構築
   Widget _buildResultCard(BottlingController controller) {
-    return SectionCard(
-      title: '計算結果',
-      icon: Icons.calculate,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 集計結果
-          _buildResultItem(
-            context,
-            label: '総本数',
-            value: '${controller.totalBottles} 本',
-          ),
-          _buildResultItem(
-            context,
-            label: '瓶詰め総量',
-            value: '${controller.totalVolume.toStringAsFixed(1)} L',
-          ),
-          _buildResultItem(
-            context,
-            label: '詰残量',
-            value: '${controller.remainingAmount} × 1.8L = ${(controller.remainingAmount * 1.8).toStringAsFixed(1)} L',
-          ),
-          _buildResultItem(
-            context,
-            label: '合計容量',
-            value: '${controller.totalVolumeWithRemaining.toStringAsFixed(1)} L',
-            isHighlighted: true,
-          ),
-          const Divider(),
-          // アルコール計算
-          _buildResultItem(
-            context,
-            label: '純アルコール量',
-            value: '${controller.pureAlcoholAmount.toStringAsFixed(1)} L',
-            isHighlighted: true,
-          ),
-        ],
-      ),
-    );
-  }
+  return SectionCard(
+    title: '計算結果',
+    icon: Icons.calculate,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 集計結果（既存部分）
+        _buildResultItem(
+          context,
+          label: '総本数',
+          value: '${controller.totalBottles} 本',
+        ),
+        _buildResultItem(
+          context,
+          label: '瓶詰め総量',
+          value: '${controller.totalVolume.toStringAsFixed(1)} L',
+        ),
+        _buildResultItem(
+          context,
+          label: '詰残量',
+          value: '${controller.remainingAmount} × 1.8L = ${(controller.remainingAmount * 1.8).toStringAsFixed(1)} L',
+        ),
+        _buildResultItem(
+          context,
+          label: '合計容量',
+          value: '${controller.totalVolumeWithRemaining.toStringAsFixed(1)} L',
+          isHighlighted: true,
+        ),
+        const Divider(),
+        
+        // 純アルコール計算（全体）
+        _buildResultItem(
+          context,
+          label: '純アルコール量',
+          value: '${controller.pureAlcoholAmount.toStringAsFixed(1)} L',
+          isHighlighted: true,
+        ),
+        
+        // ここから追加：詰め残の純アルコール量
+        _buildResultItem(
+          context,
+          label: '詰残純アルコール量',
+          value: '${((controller.remainingAmount * 1.8) * controller.alcoholPercentage / 100).toStringAsFixed(1)} L',
+        ),
+        
+        // 瓶種ごとの純アルコール量を表示（新規追加）
+        const SizedBox(height: 16.0),
+        Text(
+          '瓶種ごとの純アルコール量',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8.0),
+        
+        // 瓶種ごとの純アルコール量を一覧表示
+        ...controller.bottleEntries.map((entry) {
+          final pureAlcohol = entry.totalVolume * controller.alcoholPercentage / 100;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text('${entry.bottleType.name} (${entry.bottleType.capacity}ml)'),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    '${pureAlcohol.toStringAsFixed(1)} L',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ],
+    ),
+  );
+}
 
   /// 結果アイテムを構築
   Widget _buildResultItem(
@@ -594,31 +636,46 @@ class _BottlingScreenState extends State<BottlingScreen> {
     }
   }
 
-  /// 瓶種追加ダイアログを表示
-  Future<void> _showAddBottleEntryDialog(
-    BuildContext context, 
-    BottlingController controller,
-  ) async {
-    BottleType selectedBottleType = BottleType.standardTypes[0]; // デフォルトは一升瓶
-    final TextEditingController casesController = TextEditingController(text: '0');
-    final TextEditingController bottlesController = TextEditingController(text: '0');
-    
+  /// 瓶種追加ダイアログを表示（修正版）
+Future<void> _showAddBottleEntryDialog(
+  BuildContext context, 
+  BottlingController controller,
+) async {
+  // ダイアログが閉じられたかを追跡するフラグ
+  bool isDialogActive = true;
+  
+  // すべてのコントローラーを事前に作成
+  final casesController = TextEditingController(text: '0');
+  final bottlesController = TextEditingController(text: '0');
+  final customNameController = TextEditingController();
+  final customCapacityController = TextEditingController();
+  final customBottlesPerCaseController = TextEditingController();
+  
+  // コントローラーを確実に破棄する
+  void disposeControllers() {
+    casesController.dispose();
+    bottlesController.dispose();
+    customNameController.dispose();
+    customCapacityController.dispose();
+    customBottlesPerCaseController.dispose();
+  }
+  
+  try {
+    BottleType selectedBottleType = BottleType.standardTypes[0];
     bool isCustomBottleType = false;
-    final TextEditingController customNameController = TextEditingController();
-    final TextEditingController customCapacityController = TextEditingController();
-    final TextEditingController customBottlesPerCaseController = TextEditingController();
-    
-    final formKey = GlobalKey<FormState>();
     
     await showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setDialogState) {
+            // ダイアログがすでに閉じられていたら空のコンテナを返す
+            if (!isDialogActive) return Container();
+            
             return AlertDialog(
               title: const Text('瓶種追加'),
               content: Form(
-                key: formKey,
+                key: GlobalKey<FormState>(),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -633,9 +690,11 @@ class _BottlingScreenState extends State<BottlingScreen> {
                               value: false,
                               groupValue: isCustomBottleType,
                               onChanged: (value) {
-                                setState(() {
-                                  isCustomBottleType = value!;
-                                });
+                                if (value != null && isDialogActive) {
+                                  setDialogState(() {
+                                    isCustomBottleType = value;
+                                  });
+                                }
                               },
                               dense: true,
                             ),
@@ -646,9 +705,11 @@ class _BottlingScreenState extends State<BottlingScreen> {
                               value: true,
                               groupValue: isCustomBottleType,
                               onChanged: (value) {
-                                setState(() {
-                                  isCustomBottleType = value!;
-                                });
+                                if (value != null && isDialogActive) {
+                                  setDialogState(() {
+                                    isCustomBottleType = value;
+                                  });
+                                }
                               },
                               dense: true,
                             ),
@@ -672,13 +733,16 @@ class _BottlingScreenState extends State<BottlingScreen> {
                             );
                           }).toList(),
                           onChanged: (value) {
-                            setState(() {
-                              selectedBottleType = value!;
-                            });
+                            if (value != null && isDialogActive) {
+                              setDialogState(() {
+                                selectedBottleType = value;
+                              });
+                            }
                           },
                         ),
                       ] else ...[
-                        // カスタム瓶種入力
+                        // カスタム瓶種入力 (引き続き同様の修正)
+                        // ...
                         TextFormField(
                           controller: customNameController,
                           decoration: const InputDecoration(
@@ -817,34 +881,36 @@ class _BottlingScreenState extends State<BottlingScreen> {
               actions: [
                 TextButton(
                   onPressed: () {
+                    isDialogActive = false; // フラグを更新
                     Navigator.of(context).pop();
                   },
                   child: const Text('キャンセル'),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (formKey.currentState!.validate()) {
-                      // 瓶種の決定
-                      BottleType bottleType;
-                      if (isCustomBottleType) {
-                        bottleType = BottleType(
-                          name: customNameController.text,
-                          capacity: int.parse(customCapacityController.text),
-                          bottlesPerCase: int.parse(customBottlesPerCaseController.text),
-                        );
-                      } else {
-                        bottleType = selectedBottleType;
-                      }
-                      
-                      // 数量の取得
-                      final cases = int.parse(casesController.text);
-                      final bottles = int.parse(bottlesController.text);
-                      
-                      // コントローラーに追加
-                      controller.addBottleEntry(bottleType, cases, bottles);
-                      
-                      Navigator.of(context).pop();
+                    // 瓶種の決定
+                    BottleType bottleType;
+                    if (isCustomBottleType) {
+                      bottleType = BottleType(
+                        name: customNameController.text,
+                        capacity: int.parse(customCapacityController.text),
+                        bottlesPerCase: int.parse(customBottlesPerCaseController.text),
+                      );
+                    } else {
+                      bottleType = selectedBottleType;
                     }
+                    
+                    // 数量の取得
+                    final cases = int.parse(casesController.text);
+                    final bottles = int.parse(bottlesController.text);
+                    
+                    // フラグを更新してからコントローラーを使用
+                    isDialogActive = false;
+                    
+                    // コントローラーに追加
+                    controller.addBottleEntry(bottleType, cases, bottles);
+                    
+                    Navigator.of(context).pop();
                   },
                   child: const Text('追加'),
                 ),
@@ -854,14 +920,14 @@ class _BottlingScreenState extends State<BottlingScreen> {
         );
       },
     );
-    
-    // コントローラーの破棄
-    casesController.dispose();
-    bottlesController.dispose();
-    customNameController.dispose();
-    customCapacityController.dispose();
-    customBottlesPerCaseController.dispose();
+  } finally {
+    // ダイアログがどう閉じられても確実にコントローラーを破棄
+    if (isDialogActive) {
+      isDialogActive = false;
+    }
+    disposeControllers();
   }
+}
 
   /// 瓶詰め情報を保存
   Future<void> _saveBottlingInfo(BottlingController controller) async {

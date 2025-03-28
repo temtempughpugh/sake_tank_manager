@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 結果表示用カードウィジェット
+/// 結果表示用カードウィジェット（よりコンパクトなサイズに修正）
 class ResultCard extends StatelessWidget {
   /// カードのタイトル
   final String title;
@@ -22,6 +22,9 @@ class ResultCard extends StatelessWidget {
   
   /// エラー状態かどうか
   final bool isError;
+  
+  /// パディング（サイズ調整用）
+  final EdgeInsetsGeometry padding;
 
   /// コンストラクタ
   const ResultCard({
@@ -33,6 +36,7 @@ class ResultCard extends StatelessWidget {
     this.color,
     this.textStyle,
     this.isError = false,
+    this.padding = const EdgeInsets.all(12.0), // デフォルトパディングを小さく
   }) : super(key: key);
 
   @override
@@ -47,39 +51,50 @@ class ResultCard extends StatelessWidget {
         ? theme.colorScheme.onErrorContainer
         : (textStyle?.color ?? theme.colorScheme.onSurfaceVariant);
     
-    final resultStyle = (textStyle ?? theme.textTheme.headlineSmall)!
+    // 結果テキストのスタイルをよりコンパクトに
+    final resultStyle = (textStyle ?? theme.textTheme.titleMedium)!
         .copyWith(color: textColor);
     
     return Card(
       color: cardColor,
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      margin: const EdgeInsets.symmetric(vertical: 6.0), // マージンを小さく
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: padding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, // タイトルと結果を左右に配置
               children: [
-                if (icon != null) ...[
-                  Icon(icon, color: textColor),
-                  const SizedBox(width: 8.0),
-                ],
+                // 左側: タイトルとアイコン
+                Row(
+                  children: [
+                    if (icon != null) ...[
+                      Icon(icon, color: textColor, size: 18), // アイコンサイズ縮小
+                      const SizedBox(width: 6.0), // 間隔縮小
+                    ],
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // 右側: 結果テキスト
                 Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(color: textColor),
+                  resultText,
+                  style: resultStyle,
                 ),
               ],
             ),
-            const SizedBox(height: 12.0),
-            Text(
-              resultText,
-              style: resultStyle,
-            ),
             if (description != null) ...[
-              const SizedBox(height: 8.0),
+              const SizedBox(height: 4.0), // 間隔縮小
               Text(
                 description!,
-                style: theme.textTheme.bodyMedium?.copyWith(
+                style: theme.textTheme.bodySmall?.copyWith(
                   color: textColor.withOpacity(0.8),
                 ),
               ),

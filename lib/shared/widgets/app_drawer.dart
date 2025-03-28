@@ -58,20 +58,20 @@ class AppDrawer extends StatelessWidget {
               context,
               title: '瓶詰め管理',
               icon: Icons.liquor,
-              isDisabled: true,
+              isDisabled: false,
               onTap: () {
                 Navigator.of(context).pop();
-                _showDevelopmentSnackBar(context);
+                Navigator.of(context).pushNamed('/bottling');
               },
             ),
             _buildDrawerItem(
               context,
               title: '瓶詰め履歴',
               icon: Icons.history,
-              isDisabled: true,
+              isDisabled: false,
               onTap: () {
                 Navigator.of(context).pop();
-                _showDevelopmentSnackBar(context);
+                Navigator.of(context).pushNamed('/bottling-list');
               },
             ),
             const Divider(),

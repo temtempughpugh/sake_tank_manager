@@ -721,6 +721,7 @@ Widget _buildResultSection(DilutionController controller) {
       ),
       
       // 近似値選択部分
+// 近似値選択部分
 if (controller.approximationPairs.isNotEmpty) ...[
   const SizedBox(height: 12.0),
   SectionCard(
@@ -736,7 +737,8 @@ if (controller.approximationPairs.isNotEmpty) ...[
           style: TextStyle(fontSize: 13, color: Colors.grey[700]),
         ),
         const SizedBox(height: 8.0),
-        CompactApproximationChips(  // ApproximationChipsからCompactApproximationChipsに戻す
+        // ここをCompactApproximationChipsからApproximationChipsに変更
+        ApproximationChips(
           approximations: controller.approximationPairs,
           isDipstickMode: false,  // 容量の近似値表示
           onSelected: (pair) {
