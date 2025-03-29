@@ -5,6 +5,7 @@ import '../core/utils/formatters.dart';
 import '../shared/widgets/status_chip.dart';
 import '../shared/widgets/section_card.dart';
 import '../shared/widgets/app_drawer.dart';
+import '../features/brewing/screens/brewing_record_list_screen.dart';
 
 /// ホーム画面
 class HomeScreen extends StatefulWidget {
@@ -394,6 +395,15 @@ class HomeScreenState extends State<HomeScreen> {
             onTap: () {
               Navigator.of(context).pop();
               Navigator.of(context).pushNamed('/bottling');  // 開発中スナックバーから実際のナビゲーションに変更
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.book),
+            title: const Text('記帳サポート'),
+            enabled: true,
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushNamed('/brewing-records');
             },
           ),
         ],

@@ -5,6 +5,7 @@ import '../../../core/utils/error_handler.dart';
 import '../controllers/bottling_manager.dart';
 import '../models/bottling_info.dart';
 import 'bottling_screen.dart';
+import '../../brewing/screens/brewing_record_screen.dart';
 
 /// 瓶詰め一覧画面
 class BottlingListScreen extends StatefulWidget {
@@ -234,6 +235,7 @@ class _BottlingListScreenState extends State<BottlingListScreen> {
     );
   }
 
+
   /// 瓶詰め詳細を表示
   // lib/features/bottling/screens/bottling_list_screen.dart 内の _showBottlingDetails メソッドを以下のように修正
 
@@ -456,18 +458,35 @@ void _showBottlingDetails(BuildContext context, BottlingInfo bottlingInfo) {
                   const SizedBox(height: 24.0),
                   // アクションボタン
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          _editBottlingInfo(context, bottlingInfo);
-                        },
-                        icon: const Icon(Icons.edit),
-                        label: const Text('編集'),
-                      ),
-                    ],
-                  ),
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    ElevatedButton.icon(
+      onPressed: () {
+        Navigator.of(context).pop();
+        _editBottlingInfo(context, bottlingInfo);
+      },
+      icon: const Icon(Icons.edit),
+      label: const Text('編集'),
+    ),
+    const SizedBox(width: 12),
+    ElevatedButton.icon(
+      onPressed: () {
+        Navigator.of(context).pop();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => BrewingRecordScreen(bottlingInfo: bottlingInfo),
+          ),
+        ).then((_) => _loadBottlingInfos());
+      },
+      icon: const Icon(Icons.book),
+      label: const Text('記帳サポート'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+        foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+      ),
+    ),
+  ],
+),
                 ],
               ),
             ),

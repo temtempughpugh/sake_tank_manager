@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../features/brewing/screens/brewing_record_list_screen.dart';
+
 
 /// アプリケーションのドロワーメニュー
 class AppDrawer extends StatelessWidget {
@@ -122,10 +124,10 @@ class AppDrawer extends StatelessWidget {
               context,
               title: '記帳サポート',
               icon: Icons.book,
-              isDisabled: true,
+              isDisabled: false,
               onTap: () {
                 Navigator.of(context).pop();
-                _showDevelopmentSnackBar(context);
+                Navigator.of(context).pushNamed('/brewing-records');
               },
             ),
             _buildDrawerItem(

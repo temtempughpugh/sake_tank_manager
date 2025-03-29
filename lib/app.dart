@@ -6,7 +6,8 @@ import 'features/dilution/screens/dilution_screen.dart';
 import 'features/dilution/screens/dilution_plans_screen.dart';
 import 'features/bottling/screens/bottling_screen.dart';
 import 'features/bottling/screens/bottling_list_screen.dart';
-import 'features/bottling/models/bottling_info.dart';  // 必要なインポートを追加
+import 'features/bottling/models/bottling_info.dart';  
+import 'features/brewing/screens/brewing_record_list_screen.dart';
 
 /// アプリケーションのメインクラス
 class SakeTankApp extends StatelessWidget {
@@ -36,6 +37,7 @@ class SakeTankApp extends StatelessWidget {
         '/dilution-plans': (context) => const DilutionPlansScreen(),
         '/bottling': (context) => const BottlingScreen(),
         '/bottling-list': (context) => const BottlingListScreen(),
+        '/brewing-records': (context) => const BrewingRecordListScreen(),
       },
       // onGenerateRouteを修正
       onGenerateRoute: (settings) {
