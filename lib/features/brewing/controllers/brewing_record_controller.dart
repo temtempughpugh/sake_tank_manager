@@ -216,53 +216,45 @@ class BrewingRecordController extends ChangeNotifier {
   }
 
   /// 全タンク移動ステージをクリア
-  void clearMovementStages() {
-    _movementStages.clear();
-    notifyListeners();
-  }
-
-  /// 割水計算を実行
   void _calculateDilution() {
-    if (_initialMeasurement == null || _finalMeasurement == null) {
-      return;
-    }
-
-    // 初期アルコール度数と最終アルコール度数のチェック
-    if (_initialAlcoholPercentage <= 0) {
-      _setError('初期アルコール度数を入力してください');
-      return;
-    }
-    
-    if (_finalAlcoholPercentage <= 0) {
-      _setError('最終アルコール度数が正しく設定されていません');
-      return;
-    }
-    
-    // 初期アルコール度数が最終アルコール度数より低い場合はエラー
-    if (_initialAlcoholPercentage <= _finalAlcoholPercentage) {
-      _setError('初期アルコール度数は割水後アルコール度数より大きい値にしてください');
-      return;
-    }
-
-    try {
-      // 初期容量と最終容量
-      final initialVolume = _initialMeasurement!.volume;
-      final finalVolume = _finalMeasurement!.volume;
-      
-      // 割水量 = 最終容量 - 初期容量
-      _dilutionWaterAmount = finalVolume - initialVolume;
-      
-      // 計算完了フラグを設定
-      _isCalculated = true;
-      
-      // エラーをクリア
-      _errorMessage = null;
-      
-      notifyListeners();
-    } catch (e) {
-      _setError('計算中にエラーが発生しました: $e');
-    }
+  if (_initialMeasurement == null || _finalMeasurement == null) {
+    return;
   }
+
+  // 初期アルコール度数と最終アルコール度数のチェック
+  if (_initialAlcoholPercentage <= 0) {
+    _setError('初期アルコール度数を入力してください');
+    return;
+  }
+
+  try {
+    // 初期容量と最終容量
+    final initialVolume = _initialMeasurement!.volume;
+    final finalVolume = _finalMeasurement!.volume;
+    
+    // 割水量 = 最終容量 - 初期容量
+    _dilutionWaterAmount = finalVolume - initialVolume;
+    
+    // 純アルコール量保存の原理に基づく割水後のアルコール度数計算
+    // 初期純アルコール量 = 最終純アルコール量
+    // 初期容量 × 初期度数 = 最終容量 × 最終度数
+    _finalAlcoholPercentage = (initialVolume * _initialAlcoholPercentage) / finalVolume;
+    
+    print('DEBUG: 初期容量=${initialVolume}L, 最終容量=${finalVolume}L');
+    print('DEBUG: 初期アルコール度数=${_initialAlcoholPercentage}%, 最終アルコール度数=${_finalAlcoholPercentage}%');
+    print('DEBUG: 割水量=${_dilutionWaterAmount}L');
+    
+    // 計算完了フラグを設定
+    _isCalculated = true;
+    
+    // エラーをクリア
+    _errorMessage = null;
+    
+    notifyListeners();
+  } catch (e) {
+    _setError('計算中にエラーが発生しました: $e');
+  }
+}
 
   /// 瓶詰め総量を計算
   void _calculateBottlingTotalVolume() {

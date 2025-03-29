@@ -219,20 +219,21 @@ class _TankMovementScreenState extends State<TankMovementScreen> {
             const SizedBox(height: 16.0),
             
             // 移動数量選択
-            if (_sourceTankNumber != null)
-              TankVolumeSelector(
-                tankNumber: _sourceTankNumber!,
-                title: '移動数量選択',
-                useDipstickAsReference: false,
-                selectedVolume: _movementMeasurement?.volume,
-                onMeasurementSelected: (measurement) {
-                  setState(() {
-                    _movementMeasurement = measurement;
-                    _isCalculated = false;
-                  });
-                },
-                visibleItemCount: 4,
-              ),
+if (_sourceTankNumber != null)
+  TankVolumeSelector(
+    tankNumber: _sourceTankNumber!,
+    title: '移動数量選択',
+    useDipstickAsReference: false,
+    selectedVolume: _movementMeasurement?.volume,
+    onMeasurementSelected: (measurement) {
+      setState(() {
+        _movementMeasurement = measurement;
+        _isCalculated = false;
+      });
+    },
+    visibleItemCount: 3, // 3つに変更
+    referenceValue: widget.initialVolume, // 蔵出し量に近い順
+  ),
             
             const SizedBox(height: 16.0),
             
@@ -277,21 +278,22 @@ class _TankMovementScreenState extends State<TankMovementScreen> {
             
             // 移動元タンク残量選択
             if (_sourceTankNumber != null && _isCalculated)
-              TankVolumeSelector(
-                tankNumber: _sourceTankNumber!,
-                title: '移動元タンク残量選択',
-                description: '移動後に移動元タンクに残った量を選択してください',
-                useDipstickAsReference: false,
-                onMeasurementSelected: (measurement) {
-                  setState(() {
-                    _remainingMeasurement = measurement;
-                    
-                    // 移動前タンク総量の更新
-                    _sourceInitialVolume = _movementMeasurement!.volume + measurement.volume;
-                  });
-                },
-                visibleItemCount: 3,
-              ),
+  TankVolumeSelector(
+    tankNumber: _sourceTankNumber!,
+    title: '移動元タンク残量選択',
+    description: '移動後に移動元タンクに残った量を選択してください',
+    useDipstickAsReference: false,
+    onMeasurementSelected: (measurement) {
+      setState(() {
+        _remainingMeasurement = measurement;
+        
+        // 移動前タンク総量の更新
+        _sourceInitialVolume = _movementMeasurement!.volume + measurement.volume;
+      });
+    },
+    visibleItemCount: 3, // 3つに変更
+    referenceValue: 0, // 0に近い残量を優先表示
+  ),
             
             const SizedBox(height: 16.0),
             

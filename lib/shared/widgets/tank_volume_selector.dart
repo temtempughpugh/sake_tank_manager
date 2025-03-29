@@ -4,9 +4,6 @@ import '../../core/models/tank.dart';
 import '../../core/services/tank_data_service.dart';
 import 'scroll_selector.dart';
 
-/// タンク容量選択用の専用ウィジェット
-/// 
-/// 特定のタンクに対して、容量と検尺値のペアを選択するためのスクロールセレクターです。
 class TankVolumeSelector extends StatefulWidget {
   /// タンク番号
   final String tankNumber;
@@ -38,23 +35,26 @@ class TankVolumeSelector extends StatefulWidget {
   /// ウィジェットの幅
   final double? width;
   
+  /// 目標となる基準値（並び替えに使用）
+  final double? referenceValue;
+
   /// コンストラクタ
   const TankVolumeSelector({
-    Key? key,
-    required this.tankNumber,
-    this.selectedDipstick,
-    this.selectedVolume,
-    this.useDipstickAsReference = true,
-    required this.onMeasurementSelected,
-    required this.title,
-    this.description,
-    this.visibleItemCount = 5,
-    this.showTitle = true,
-    this.width,
-  }) : assert(selectedDipstick != null || selectedVolume != null || !useDipstickAsReference,
-             "Either selectedDipstick or selectedVolume must be provided"),
-      super(key: key);
-
+  Key? key,
+  required this.tankNumber,
+  this.selectedDipstick,
+  this.selectedVolume,
+  this.useDipstickAsReference = true,
+  required this.onMeasurementSelected,
+  required this.title,
+  this.description,
+  this.visibleItemCount = 5,
+  this.showTitle = true,
+  this.width,
+  this.referenceValue, // targetValue から referenceValue に変更
+}) : assert(selectedDipstick != null || selectedVolume != null || !useDipstickAsReference,
+          "Either selectedDipstick or selectedVolume must be provided"),
+    super(key: key);
   @override
   State<TankVolumeSelector> createState() => _TankVolumeSelectorState();
 }
@@ -105,13 +105,15 @@ class _TankVolumeSelectorState extends State<TankVolumeSelector> {
           // 測定データを取得してソート
           _measurements = List.from(tank.measurements);
           
-          if (widget.useDipstickAsReference) {
-            // 検尺値でソート
-            _measurements.sort((a, b) => a.dipstick.compareTo(b.dipstick));
-          } else {
-            // 容量でソート
-            _measurements.sort((a, b) => b.volume.compareTo(a.volume));
-          }
+          // ここでは容量の多い順（降順）にソート
+          if (widget.referenceValue != null) { // targetValue から referenceValue に変更
+  // 目標値が指定されている場合は、近い順にソート
+  _measurements.sort((a, b) {
+    final diffA = (a.volume - widget.referenceValue!).abs(); // targetValue から referenceValue に変更
+    final diffB = (b.volume - widget.referenceValue!).abs(); // targetValue から referenceValue に変更
+    return diffA.compareTo(diffB);
+  });
+}
           
           // 現在の選択を更新
           _updateSelectedMeasurement();
@@ -230,12 +232,8 @@ class _TankVolumeSelectorState extends State<TankVolumeSelector> {
               ScrollSelector<MeasurementData>(
                 items: _measurements,
                 selectedItem: _selectedMeasurement,
-                labelBuilder: (data) => widget.useDipstickAsReference
-                    ? '${data.dipstick.toInt()} mm (${data.volume.toStringAsFixed(1)} L)'
-                    : '${data.volume.toStringAsFixed(1)} L (${data.dipstick.toInt()} mm)',
-                detailBuilder: (data) => widget.useDipstickAsReference
-                    ? '${data.volume.toStringAsFixed(1)} L'
-                    : '${data.dipstick.toInt()} mm',
+                labelBuilder: (data) => '${data.volume.toStringAsFixed(1)} L',
+                detailBuilder: (data) => '${data.dipstick.toInt()} mm',
                 onItemSelected: (data) {
                   setState(() {
                     _selectedMeasurement = data;

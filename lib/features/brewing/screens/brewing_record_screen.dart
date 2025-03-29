@@ -203,84 +203,17 @@ class _BrewingRecordScreenState extends State<BrewingRecordScreen> {
           // 割水後数量選択
           // 割水後数量選択
           if (controller.dilutionTankNumber != null)
-            SectionCard(
-              title: '割水後数量選択',
-              icon: Icons.water_drop,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('タンク内の数量を選択してください'),
-                  const SizedBox(height: 12.0),
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: 5,
-                      separatorBuilder: (context, index) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        // ここでデータを取得（実際にはコントローラー経由でタンクデータを取得）
-                        final tank = controller.dilutionTank;
-                        if (tank == null || tank.measurements.isEmpty) {
-                          return const ListTile(
-                            title: Text('データがありません'),
-                          );
-                        }
-                        
-                        // 容量で降順にソート
-                        final measurements = List<MeasurementData>.from(tank.measurements)
-                          ..sort((a, b) => b.volume.compareTo(a.volume));
-                        
-                        // データ数よりインデックスが大きい場合
-                        if (index >= measurements.length) {
-                          return const SizedBox();
-                        }
-                        
-                        final data = measurements[index];
-                        final isSelected = controller.finalMeasurement?.volume == data.volume;
-                        
-                        return ListTile(
-                          title: Text(
-                            '${data.volume.toStringAsFixed(1)} L',
-                            style: TextStyle(
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          trailing: Text(
-                            '${data.dipstick.toInt()} mm',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          tileColor: isSelected 
-                              ? Theme.of(context).colorScheme.primaryContainer 
-                              : null,
-                          selected: isSelected,
-                          onTap: () {
-                            controller.setFinalMeasurement(data);
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  if (controller.finalMeasurement != null) ...[
-                    const SizedBox(height: 8.0),
-                    Text(
-                      '選択: ${controller.finalMeasurement!.volume.toStringAsFixed(1)} L (${controller.finalMeasurement!.dipstick.toInt()} mm)',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          
-          const SizedBox(height: 16.0),
+  TankVolumeSelector(
+    tankNumber: controller.dilutionTankNumber!,
+    title: '割水後数量選択',
+    useDipstickAsReference: false,
+    selectedVolume: controller.finalMeasurement?.volume,
+    onMeasurementSelected: (measurement) {
+      controller.setFinalMeasurement(measurement);
+    },
+    visibleItemCount: 3, // 3つに変更
+    referenceValue: controller.bottlingTotalVolume, // 瓶詰め総量を基準に
+  ),
           
           // 欠減計算
           if (controller.finalMeasurement != null)
@@ -337,83 +270,18 @@ class _BrewingRecordScreenState extends State<BrewingRecordScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 蔵出し数量選択
-          if (controller.dilutionTankNumber != null)
-            SectionCard(
-              title: '蔵出し数量選択',
-              icon: Icons.water_drop_outlined,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('タンクからの蔵出し量を選択してください'),
-                  const SizedBox(height: 12.0),
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: 5,
-                      separatorBuilder: (context, index) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        // ここでデータを取得
-                        final tank = controller.dilutionTank;
-                        if (tank == null || tank.measurements.isEmpty) {
-                          return const ListTile(
-                            title: Text('データがありません'),
-                          );
-                        }
-                        
-                        // 容量で降順にソート
-                        final measurements = List<MeasurementData>.from(tank.measurements)
-                          ..sort((a, b) => b.volume.compareTo(a.volume));
-                        
-                        // データ数よりインデックスが大きい場合
-                        if (index >= measurements.length) {
-                          return const SizedBox();
-                        }
-                        
-                        final data = measurements[index];
-                        final isSelected = controller.initialMeasurement?.volume == data.volume;
-                        
-                        return ListTile(
-                          title: Text(
-                            '${data.volume.toStringAsFixed(1)} L',
-                            style: TextStyle(
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          trailing: Text(
-                            '${data.dipstick.toInt()} mm',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          tileColor: isSelected 
-                              ? Theme.of(context).colorScheme.primaryContainer 
-                              : null,
-                          selected: isSelected,
-                          onTap: () {
-                            controller.setInitialMeasurement(data);
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  if (controller.initialMeasurement != null) ...[
-                    const SizedBox(height: 8.0),
-                    Text(
-                      '選択: ${controller.initialMeasurement!.volume.toStringAsFixed(1)} L (${controller.initialMeasurement!.dipstick.toInt()} mm)',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+if (controller.dilutionTankNumber != null)
+  TankVolumeSelector(
+    tankNumber: controller.dilutionTankNumber!,
+    title: '蔵出し数量選択',
+    useDipstickAsReference: false,
+    selectedVolume: controller.initialMeasurement?.volume,
+    onMeasurementSelected: (measurement) {
+      controller.setInitialMeasurement(measurement);
+    },
+    visibleItemCount: 3, // 3つに変更
+    referenceValue: controller.finalMeasurement?.volume, // 割水後数量に近い順
+  ),
           
           const SizedBox(height: 16.0),
           
