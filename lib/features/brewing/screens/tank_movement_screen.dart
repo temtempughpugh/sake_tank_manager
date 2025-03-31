@@ -4,10 +4,14 @@ import '../../../shared/widgets/tank_selector.dart';
 import '../../../shared/widgets/tank_volume_selector.dart';
 import '../../../core/models/measurement_data.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/services/tank_data_service.dart';  // こ
 import '../controllers/brewing_record_controller.dart';
 
 /// タンク移動追加画面
 class TankMovementScreen extends StatefulWidget {
+  /// 移動元タンク番号（追加パラメータ）
+  final String? sourceTankNumber;  // nullableに変更
+  
   /// 移動先タンク番号（通常は割水タンク）
   final String destinationTankNumber;
   
@@ -20,6 +24,7 @@ class TankMovementScreen extends StatefulWidget {
   /// コンストラクタ
   const TankMovementScreen({
     Key? key,
+    this.sourceTankNumber,  // オプショナルパラメータとして追加
     required this.destinationTankNumber,
     required this.initialVolume,
     required this.initialDipstick,
@@ -30,7 +35,9 @@ class TankMovementScreen extends StatefulWidget {
 }
 
 class _TankMovementScreenState extends State<TankMovementScreen> {
-  /// 移動元タンク番号
+  /// タンクデータサービス - クラス先頭で初期化
+  final TankDataService _tankDataService = TankDataService();
+
   String? _sourceTankNumber;
   
   /// 移動数量の測定データ
@@ -54,13 +61,21 @@ class _TankMovementScreenState extends State<TankMovementScreen> {
   /// 計算完了フラグ
   bool _isCalculated = false;
 
+  // クラス内にstate変数を追加
+bool _isZeroRemaining = false;
+
   @override
-  void initState() {
-    super.initState();
-    
-    // デフォルトプロセス名を設定
-    _processNameController.text = '火入れ工程';
+void initState() {
+  super.initState();
+  
+  // 移動元タンク番号の初期化（追加）
+  if (widget.sourceTankNumber != null) {
+    _sourceTankNumber = widget.sourceTankNumber;
   }
+  
+  // デフォルトプロセス名を設定
+  _processNameController.text = '火入れ工程';
+}
 
   @override
   void dispose() {
@@ -127,6 +142,24 @@ class _TankMovementScreenState extends State<TankMovementScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+
+            SectionCard(
+  title: '移動元情報',
+  icon: Icons.info_outline,
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('移動元タンク: ${widget.sourceTankNumber}', 
+          style: Theme.of(context).textTheme.bodyMedium),
+      const SizedBox(height: 4.0),
+      Text('移動前容量: ${widget.initialVolume.toStringAsFixed(1)}L', 
+          style: Theme.of(context).textTheme.bodyMedium),
+      const SizedBox(height: 4.0),
+      Text('移動前検尺値: ${widget.initialDipstick.toStringAsFixed(0)}mm', 
+          style: Theme.of(context).textTheme.bodyMedium),
+    ],
+  ),
+),
             // 移動情報フォーム
             SectionCard(
               title: _processNameController.text.isEmpty 
@@ -277,23 +310,90 @@ if (_sourceTankNumber != null)
             const SizedBox(height: 16.0),
             
             // 移動元タンク残量選択
-            if (_sourceTankNumber != null && _isCalculated)
-  TankVolumeSelector(
-    tankNumber: _sourceTankNumber!,
+            if (_sourceTankNumber != null && _isCalculated) ...[
+  const SizedBox(height: 16.0),
+  SectionCard(
     title: '移動元タンク残量選択',
-    description: '移動後に移動元タンクに残った量を選択してください',
-    useDipstickAsReference: false,
-    onMeasurementSelected: (measurement) {
-      setState(() {
-        _remainingMeasurement = measurement;
+    icon: Icons.water_drop_outlined,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 説明テキスト
+        Text(
+          '移動後に移動元タンクに残った量を選択してください',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 12.0),
         
-        // 移動前タンク総量の更新
-        _sourceInitialVolume = _movementMeasurement!.volume + measurement.volume;
-      });
-    },
-    visibleItemCount: 3, // 3つに変更
-    referenceValue: 0, // 0に近い残量を優先表示
+        // ラジオボタンで選択
+        Row(
+          children: [
+            Expanded(
+              child: RadioListTile<bool>(
+                title: const Text('残量なし (0L)'),
+                value: true,
+                groupValue: _isZeroRemaining,
+                onChanged: (value) {
+                  setState(() {
+                    _isZeroRemaining = true;
+                    
+                    // タンク情報からmax検尺値を取得
+                    final tank = _tankDataService.getTank(_sourceTankNumber!);
+                    final maxDipstick = tank?.maxDipstick ?? 2000.0;
+                    
+                    // 0Lの残量を表すMeasurementDataを作成
+                    _remainingMeasurement = MeasurementData(
+                      volume: 0.0,
+                      dipstick: maxDipstick,
+                    );
+                    
+                    // 移動前タンク総量の更新
+                    _sourceInitialVolume = _movementMeasurement!.volume;
+                  });
+                },
+              ),
+            ),
+            Expanded(
+              child: RadioListTile<bool>(
+                title: const Text('残量データ選択'),
+                value: false,
+                groupValue: _isZeroRemaining,
+                onChanged: (value) {
+                  setState(() {
+                    _isZeroRemaining = false;
+                    _remainingMeasurement = null;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        
+        // 「残量データ選択」の場合のみ表示
+        if (!_isZeroRemaining)
+          TankVolumeSelector(
+            tankNumber: _sourceTankNumber!,
+            title: '',
+            showTitle: false,
+            useDipstickAsReference: false,
+            onMeasurementSelected: (measurement) {
+              setState(() {
+                _remainingMeasurement = measurement;
+                
+                // 移動前タンク総量の更新
+                _sourceInitialVolume = _movementMeasurement!.volume + measurement.volume;
+              });
+            },
+            visibleItemCount: 3,
+            referenceValue: 0.0,
+          ),
+           ],
+    ),
   ),
+],
             
             const SizedBox(height: 16.0),
             

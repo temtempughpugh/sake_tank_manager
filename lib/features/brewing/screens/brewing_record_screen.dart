@@ -475,8 +475,8 @@ if (controller.movementStages.isNotEmpty) ...[
   ),
 ],
           // 操作ボタン
-          if (controller.isCalculated) ...[
-  // 中括弧{}を削除し、条件分岐はこのように書く
+          // 操作ボタンの条件分岐を修正
+if (controller.isCalculated) ...[
   if (!controller.isEditMode)
     ElevatedButton.icon(
       onPressed: _saveRecord,
@@ -544,37 +544,57 @@ if (controller.movementStages.isNotEmpty) ...[
 
   /// タンク移動を追加
   void _addTankMovement() async {
-    if (!_controller.isCalculated || _controller.initialMeasurement == null) {
-      ErrorHandler.showErrorSnackBar(
-        context,
-        '蔵出し情報を先に計算してください',
-      );
-      return;
-    }
-
-    // タンク移動画面へ遷移
-    final result = await Navigator.of(context).push<MovementStageData>(
-      MaterialPageRoute(
-        builder: (context) => TankMovementScreen(
-          destinationTankNumber: _controller.dilutionTankNumber!,
-          initialVolume: _controller.initialMeasurement!.volume,
-          initialDipstick: _controller.initialMeasurement!.dipstick,
-        ),
-      ),
+  if (!_controller.isCalculated || _controller.initialMeasurement == null) {
+    ErrorHandler.showErrorSnackBar(
+      context,
+      '蔵出し情報を先に計算してください',
     );
+    return;
+  }
+
+  // 移動元タンクと数量を設定（前の移動があればその移動先を使用）
+  String sourceNumber;
+  double sourceVolume;
+  double sourceDipstick;
+  
+  if (_controller.movementStages.isNotEmpty) {
+    // 既存の移動がある場合は最後の移動先を今回の移動元に設定
+    final lastMovement = _controller.movementStages.last;
+    sourceNumber = lastMovement.destinationTankNumber;
+    // 移動先のタンク情報を取得（実際はタンクデータサービスから取得すべき）
+    sourceVolume = lastMovement.movementVolume;
+    sourceDipstick = lastMovement.destinationDipstick;
+  } else {
+    // 最初の移動では割水タンクが移動元
+    sourceNumber = _controller.dilutionTankNumber!;
+    sourceVolume = _controller.initialMeasurement!.volume;
+    sourceDipstick = _controller.initialMeasurement!.dipstick;
+  }
+
+  // タンク移動画面へ遷移（引数を修正）
+  final result = await Navigator.of(context).push<MovementStageData>(
+    MaterialPageRoute(
+      builder: (context) => TankMovementScreen(
+        sourceTankNumber: sourceNumber,  // 新規追加：移動元タンク
+        destinationTankNumber: "",  // 空にして選択させる
+        initialVolume: sourceVolume,
+        initialDipstick: sourceDipstick,
+      ),
+    ),
+  );
+  
+  if (result != null) {
+    // タンク移動を追加
+    _controller.addMovementStage(result);
     
-    if (result != null) {
-      // タンク移動を追加
-      _controller.addMovementStage(result);
-      
-      if (mounted) {
-        ErrorHandler.showSuccessSnackBar(
-          context,
-          'タンク移動情報を追加しました',
-        );
-      }
+    if (mounted) {
+      ErrorHandler.showSuccessSnackBar(
+        context,
+        'タンク移動情報を追加しました',
+      );
     }
   }
+}
 
   /// 記帳データを保存
   void _saveRecord() async {
@@ -598,6 +618,7 @@ if (controller.movementStages.isNotEmpty) ...[
       }
     }
   }
+/// 記帳データを更新
 /// 記帳データを更新
 void _updateRecord() async {
   try {

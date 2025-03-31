@@ -100,21 +100,25 @@ class BrewingRecordService {
 
   /// 記帳データを更新
   Future<void> updateRecord(BrewingRecord record) async {
-    if (!_isInitialized) await initialize();
-    
-    final index = _records.indexWhere((r) => r.id == record.id);
-    if (index == -1) {
-      throw Exception('更新する記帳データが見つかりません: ${record.id}');
-    }
-    
+  if (!_isInitialized) await initialize();
+  
+  final index = _records.indexWhere((r) => r.id == record.id);
+  if (index == -1) {
+    // 見つからない場合はエラーではなく新規追加として処理
+    _records.add(record);
+  } else {
+    // 既存のレコードを更新
     _records[index] = record;
-    await _saveRecords();
-    
-    // 瓶詰め情報の更新が含まれている場合は瓶詰め情報も更新
-    if (record.isBottlingInfoUpdated && record.bottlingUpdate != null) {
-      await _updateBottlingInfo(record);
-    }
   }
+  
+  // 更新後必ず保存
+  await _saveRecords();
+  
+  // 瓶詰め情報の更新も確実に実行
+  if (record.isBottlingInfoUpdated && record.bottlingUpdate != null) {
+    await _updateBottlingInfo(record);
+  }
+}
 
   /// 記帳データを削除
   Future<void> deleteRecord(String id) async {
