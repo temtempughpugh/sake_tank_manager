@@ -10,16 +10,22 @@ import '../../../core/models/measurement_data.dart';
 import '../../bottling/models/bottling_info.dart';
 import '../controllers/brewing_record_controller.dart';
 import 'tank_movement_screen.dart';
+import '../models/brewing_record.dart';
+import '../controllers/brewing_record_service.dart';
 
 /// 記帳サポートメイン画面
 class BrewingRecordScreen extends StatefulWidget {
   /// 瓶詰め情報
   final BottlingInfo bottlingInfo;
+  
+  /// 編集する記録 (オプション)
+  final BrewingRecord? existingRecord;
 
   /// コンストラクタ
   const BrewingRecordScreen({
     Key? key,
     required this.bottlingInfo,
+    this.existingRecord,
   }) : super(key: key);
 
   @override
@@ -43,32 +49,21 @@ class _BrewingRecordScreenState extends State<BrewingRecordScreen> {
   int _currentPageIndex = 0;
 
   @override
-  void initState() {
-    super.initState();
-    
-    // コントローラーの初期化
-    _controller = BrewingRecordController();
-    
-    // データの読み込み
-    _controller.initialize().then((_) {
-      _controller.loadBottlingInfo(widget.bottlingInfo.id);
+void initState() {
+  super.initState();
+  
+  // コントローラーの初期化
+  _controller = BrewingRecordController();
+  
+  // データの読み込み
+  _controller.initialize().then((_) {
+    _controller.loadBottlingInfo(widget.bottlingInfo.id).then((_) {
+      // 既存の記録があれば編集モードにする
+      if (widget.existingRecord != null) {
+        _controller.setEditMode(widget.existingRecord!);
+      }
     });
-  }
-
-  void _loadExistingRecord(String recordId) async {
-  try {
-    final record = await _recordService.getRecordById(recordId);
-    if (record != null) {
-      _controller.setEditMode(record);
-    }
-  } catch (e) {
-    if (mounted) {
-      ErrorHandler.showErrorSnackBar(
-        context,
-        '記録の読み込みに失敗しました: $e',
-      );
-    }
-  }
+  });
 }
 
   @override

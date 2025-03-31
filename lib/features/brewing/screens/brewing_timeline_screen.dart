@@ -171,6 +171,20 @@ class _BrewingTimelineScreenState extends State<BrewingTimelineScreen> {
         ),
       );
       
+      
+      // 4. 蔵出し情報
+      timelineItems.add(
+        TimelineItemWidget(
+          type: TimelineItemType.extraction,
+          title: '蔵出し',
+          contentLines: [
+            'タンク: ${dilution.tankNumber}（検尺値: ${dilution.initialDipstick.toStringAsFixed(0)}mm）',
+            '蔵出し量: ${dilution.initialVolume.toStringAsFixed(1)}L',
+            'アルコール度数: ${dilution.initialAlcoholPercentage.toStringAsFixed(1)}%（純アル量: ${(dilution.initialVolume * dilution.initialAlcoholPercentage / 100).toStringAsFixed(2)}L）',
+          ],
+        ),
+      );
+
       // 蔵出し欠減（2番目の欠減）
       if (shortages.length > 1) {
         final extractionShortage = shortages[1];
@@ -185,19 +199,6 @@ class _BrewingTimelineScreenState extends State<BrewingTimelineScreen> {
           ),
         );
       }
-      
-      // 4. 蔵出し情報
-      timelineItems.add(
-        TimelineItemWidget(
-          type: TimelineItemType.extraction,
-          title: '蔵出し',
-          contentLines: [
-            'タンク: ${dilution.tankNumber}（検尺値: ${dilution.initialDipstick.toStringAsFixed(0)}mm）',
-            '蔵出し量: ${dilution.initialVolume.toStringAsFixed(1)}L',
-            'アルコール度数: ${dilution.initialAlcoholPercentage.toStringAsFixed(1)}%（純アル量: ${(dilution.initialVolume * dilution.initialAlcoholPercentage / 100).toStringAsFixed(2)}L）',
-          ],
-        ),
-      );
     }
     
     // 5. タンク移動情報
@@ -223,15 +224,17 @@ class _BrewingTimelineScreenState extends State<BrewingTimelineScreen> {
           );
         }
         
-        // タンク移動情報
+        // タン ク移動情報
         timelineItems.add(
           TimelineItemWidget(
             type: TimelineItemType.movement,
             title: '${movement.processName ?? "タンク移動"}',
             contentLines: [
-              '移動元: ${movement.sourceTankNumber}（検尺値: ${movement.sourceDipstick.toStringAsFixed(0)}mm → ${movement.sourceRemainingDipstick.toStringAsFixed(0)}mm / 残量: ${movement.sourceRemainingVolume.toStringAsFixed(1)}L）',
+              '移動元: ${movement.sourceTankNumber}',
+              ' >>移動前: ${movement.sourceDipstick.toStringAsFixed(0)}mm / ${movement.sourceInitialVolume.toStringAsFixed(1)}L → ',
+              ' >>移動後: ${movement.sourceRemainingDipstick.toStringAsFixed(0)}mm / ${movement.sourceRemainingVolume.toStringAsFixed(1)}L(残量)',
+              ' >>移動量: ${movement.movementVolume.toStringAsFixed(1)}L',
               '移動先: ${movement.destinationTankNumber}（検尺値: ${movement.destinationDipstick.toStringAsFixed(0)}mm）',
-              '移動量: ${movement.movementVolume.toStringAsFixed(1)}L（総量: ${movement.sourceInitialVolume.toStringAsFixed(1)}L）',
             ],
             isLast: i == record.movementStages.length - 1 && (i + 1 == record.movementStages.length),
             onTap: () => _showMovementDetails(context, movement),
