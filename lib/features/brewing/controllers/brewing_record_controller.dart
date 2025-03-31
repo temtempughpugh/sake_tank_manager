@@ -519,17 +519,29 @@ Future<void> updateBrewingRecord() async {
       );
     }).toList();
     
-    // 記帳データの更新
-    final record = BrewingRecord(
-      id: _existingRecordId!,
-      bottlingInfoId: _bottlingInfo!.id,
-      isBottlingInfoUpdated: true,
-      bottlingUpdate: bottlingUpdate,
-      dilutionStage: dilutionStage,
-      movementStages: movementStages,
-      createdAt: DateTime.now(), // 更新日時を新しく
-      updatedAt: DateTime.now(),
-    );
+    // 既存の記録を取得して、作成日時などの重要な情報を保持
+final existingRecords = await _recordService.getRecordsByBottlingInfoId(_bottlingInfo!.id);
+BrewingRecord? existingRecord;
+
+try {
+  existingRecord = existingRecords.firstWhere((r) => r.id == _existingRecordId);
+} catch (e) {
+  throw Exception('既存の記録が見つかりません: $_existingRecordId');
+}
+
+// 記帳データの更新（作成日時は既存のものを使用）
+final record = BrewingRecord(
+  id: _existingRecordId!,
+  bottlingInfoId: _bottlingInfo!.id,
+  isBottlingInfoUpdated: true,
+  bottlingUpdate: bottlingUpdate,
+  dilutionStage: dilutionStage,
+  movementStages: movementStages,
+  createdAt: existingRecord.createdAt, // 作成日時は保持
+  updatedAt: DateTime.now(), // 更新日時は現在
+  personInCharge: existingRecord.personInCharge, // 既存の担当者情報を保持
+  notes: existingRecord.notes, // 既存の備考情報を保持
+);
     
     // 記帳データの更新
     await _recordService.updateRecord(record);

@@ -281,6 +281,42 @@ void initState() {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 蔵出し数量選択
+          // 前画面の要約表示
+if (controller.bottlingInfo != null && controller.finalMeasurement != null) ...[
+  SectionCard(
+    title: '瓶詰め情報・割水後数量（要約）',
+    icon: Icons.summarize,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${controller.bottlingInfo!.sakeName} (${Formatters.dateFormat(controller.bottlingInfo!.date)})',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 4.0),
+        Text(
+          '瓶詰め総量: ${controller.bottlingTotalVolume.toStringAsFixed(1)}L',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        Text(
+          '選択割水タンク: ${controller.dilutionTankNumber}',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        Text(
+          '割水後数量: ${controller.finalMeasurement!.volume.toStringAsFixed(1)}L (${controller.finalMeasurement!.dipstick.toStringAsFixed(0)}mm)',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        if (controller.bottlingShortage != 0) Text(
+          '欠減量: ${controller.bottlingShortage.toStringAsFixed(1)}L (${controller.bottlingShortagePercentage.toStringAsFixed(2)}%)',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: controller.bottlingShortage < 0 ? Colors.red : null,
+          ),
+        ),
+      ],
+    ),
+  ),
+  const SizedBox(height: 16.0),
+],
 if (controller.dilutionTankNumber != null)
   TankVolumeSelector(
     tankNumber: controller.dilutionTankNumber!,
@@ -412,7 +448,32 @@ if (controller.dilutionTankNumber != null)
             ),
           
           const SizedBox(height: 16.0),
-          
+          // タンク移動リスト表示
+if (controller.movementStages.isNotEmpty) ...[
+  const SizedBox(height: 16.0),
+  SectionCard(
+    title: 'タンク移動リスト',
+    icon: Icons.swap_horiz,
+    child: Column(
+      children: [
+        ...controller.movementStages.asMap().entries.map((entry) {
+          final index = entry.key;
+          final stage = entry.value;
+          return ListTile(
+            title: Text('${stage.processName ?? "タンク移動"} ${index + 1}'),
+            subtitle: Text('${stage.sourceTankNumber} → ${stage.destinationTankNumber}  (${stage.movementVolume.toStringAsFixed(1)}L)'),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () {
+                controller.removeMovementStage(index);
+              },
+            ),
+          );
+        }).toList(),
+      ],
+    ),
+  ),
+],
           // 操作ボタン
           if (controller.isCalculated) ...[
   // 中括弧{}を削除し、条件分岐はこのように書く
@@ -559,5 +620,7 @@ void _updateRecord() async {
     }
   }
 }
+
+
 
 }
