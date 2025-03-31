@@ -40,21 +40,22 @@ class TankVolumeSelector extends StatefulWidget {
 
   /// コンストラクタ
   const TankVolumeSelector({
-  Key? key,
-  required this.tankNumber,
-  this.selectedDipstick,
-  this.selectedVolume,
-  this.useDipstickAsReference = true,
-  required this.onMeasurementSelected,
-  required this.title,
-  this.description,
-  this.visibleItemCount = 5,
-  this.showTitle = true,
-  this.width,
-  this.referenceValue, // targetValue から referenceValue に変更
-}) : assert(selectedDipstick != null || selectedVolume != null || !useDipstickAsReference,
-          "Either selectedDipstick or selectedVolume must be provided"),
-    super(key: key);
+    Key? key,
+    required this.tankNumber,
+    this.selectedDipstick,
+    this.selectedVolume,
+    this.useDipstickAsReference = true,
+    required this.onMeasurementSelected,
+    required this.title,
+    this.description,
+    this.visibleItemCount = 3,
+    this.showTitle = true,
+    this.width,
+    this.referenceValue,
+  }) : assert(selectedDipstick != null || selectedVolume != null || !useDipstickAsReference,
+            "Either selectedDipstick or selectedVolume must be provided"),
+      super(key: key);
+      
   @override
   State<TankVolumeSelector> createState() => _TankVolumeSelectorState();
 }
@@ -102,20 +103,11 @@ class _TankVolumeSelectorState extends State<TankVolumeSelector> {
       
       if (tank != null) {
         setState(() {
-          // 測定データを取得してソート
+          // 測定データを取得して常に容量の多い順（検尺値の小さい順）にソート
           _measurements = List.from(tank.measurements);
+          _measurements.sort((a, b) => b.volume.compareTo(a.volume)); // 容量の多い順
           
-          // ここでは容量の多い順（降順）にソート
-          if (widget.referenceValue != null) { // targetValue から referenceValue に変更
-  // 目標値が指定されている場合は、近い順にソート
-  _measurements.sort((a, b) {
-    final diffA = (a.volume - widget.referenceValue!).abs(); // targetValue から referenceValue に変更
-    final diffB = (b.volume - widget.referenceValue!).abs(); // targetValue から referenceValue に変更
-    return diffA.compareTo(diffB);
-  });
-}
-          
-          // 現在の選択を更新
+          // 現在の選択を更新（目標値があればそれに近いものが選ばれる）
           _updateSelectedMeasurement();
           
           _isLoading = false;
@@ -144,14 +136,30 @@ class _TankVolumeSelectorState extends State<TankVolumeSelector> {
       return;
     }
 
+    // 優先順位で選択：
+    // 1. 既に選択された検尺/容量値がある場合はそれに最も近いものを選択
+    // 2. なければ目標値(referenceValue)に最も近いものを選択
+    // 3. それもなければ先頭（最大容量）のデータを選択
+    
     if (widget.useDipstickAsReference && widget.selectedDipstick != null) {
       // 検尺値に最も近い測定データを探す
       _selectedMeasurement = _findClosestMeasurementByDipstick(widget.selectedDipstick!);
     } else if (!widget.useDipstickAsReference && widget.selectedVolume != null) {
       // 容量に最も近い測定データを探す
       _selectedMeasurement = _findClosestMeasurementByVolume(widget.selectedVolume!);
+    } else if (widget.referenceValue != null) {
+      // 目標値に最も近い測定データを探す
+      _selectedMeasurement = _findClosestMeasurementByVolume(widget.referenceValue!);
+      
+      // 目標値に近いアイテムを中央に表示するためのスクロール位置調整
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final index = _measurements.indexOf(_selectedMeasurement!);
+        if (index >= 0) {
+          // ここでScrollSelectorに値を設定
+        }
+      });
     } else {
-      // デフォルトは先頭の測定データ
+      // デフォルトは先頭の測定データ（最大容量）
       _selectedMeasurement = _measurements.first;
     }
   }
@@ -232,7 +240,7 @@ class _TankVolumeSelectorState extends State<TankVolumeSelector> {
               ScrollSelector<MeasurementData>(
                 items: _measurements,
                 selectedItem: _selectedMeasurement,
-                labelBuilder: (data) => '${data.volume.toStringAsFixed(1)} L',
+                labelBuilder: (data) => '${data.volume.toStringAsFixed(1)}',
                 detailBuilder: (data) => '${data.dipstick.toInt()} mm',
                 onItemSelected: (data) {
                   setState(() {
@@ -244,7 +252,6 @@ class _TankVolumeSelectorState extends State<TankVolumeSelector> {
                 width: widget.width,
                 selectedColor: Theme.of(context).colorScheme.primary,
                 selectedTextColor: Theme.of(context).colorScheme.onPrimary,
-                unselectedColor: Theme.of(context).colorScheme.surface.withOpacity(0.2),
                 unselectedTextColor: Theme.of(context).colorScheme.onSurface,
               ),
           ],

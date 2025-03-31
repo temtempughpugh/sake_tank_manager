@@ -55,6 +55,22 @@ class _BrewingRecordScreenState extends State<BrewingRecordScreen> {
     });
   }
 
+  void _loadExistingRecord(String recordId) async {
+  try {
+    final record = await _recordService.getRecordById(recordId);
+    if (record != null) {
+      _controller.setEditMode(record);
+    }
+  } catch (e) {
+    if (mounted) {
+      ErrorHandler.showErrorSnackBar(
+        context,
+        '記録の読み込みに失敗しました: $e',
+      );
+    }
+  }
+}
+
   @override
   void dispose() {
     _initialAlcoholController.dispose();
@@ -404,27 +420,39 @@ if (controller.dilutionTankNumber != null)
           
           // 操作ボタン
           if (controller.isCalculated) ...[
-            ElevatedButton.icon(
-              onPressed: _saveRecord,
-              icon: const Icon(Icons.save),
-              label: const Text('変更を記録・瓶詰め情報更新'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                backgroundColor: Colors.orange,
-              ),
-            ),
-            
-            const SizedBox(height: 12.0),
-            
-            ElevatedButton.icon(
-              onPressed: _addTankMovement,
-              icon: const Icon(Icons.swap_horiz),
-              label: const Text('タンク移動を追加'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-              ),
-            ),
-          ],
+  // 中括弧{}を削除し、条件分岐はこのように書く
+  if (!controller.isEditMode)
+    ElevatedButton.icon(
+      onPressed: _saveRecord,
+      icon: const Icon(Icons.save),
+      label: const Text('変更を記録・瓶詰め情報更新'),
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size.fromHeight(50),
+        backgroundColor: Colors.orange,
+      ),
+    )
+  else
+    ElevatedButton.icon(
+      onPressed: _updateRecord,
+      icon: const Icon(Icons.update),
+      label: const Text('記帳データを更新'),
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size.fromHeight(50),
+        backgroundColor: Colors.orange,
+      ),
+    ),
+  
+  const SizedBox(height: 12.0),
+  
+  ElevatedButton.icon(
+    onPressed: _addTankMovement,
+    icon: const Icon(Icons.swap_horiz),
+    label: const Text('タンク移動を追加'),
+    style: ElevatedButton.styleFrom(
+      minimumSize: const Size.fromHeight(50),
+    ),
+  ),
+],
           
           const SizedBox(height: 12.0),
           
@@ -514,4 +542,27 @@ if (controller.dilutionTankNumber != null)
       }
     }
   }
+/// 記帳データを更新
+void _updateRecord() async {
+  try {
+    await _controller.updateBrewingRecord();
+    
+    if (mounted) {
+      ErrorHandler.showSuccessSnackBar(
+        context,
+        '記帳データを更新しました',
+      );
+      
+      Navigator.of(context).pop(true);
+    }
+  } catch (e) {
+    if (mounted) {
+      ErrorHandler.showErrorSnackBar(
+        context,
+        '更新に失敗しました: $e',
+      );
+    }
+  }
+}
+
 }

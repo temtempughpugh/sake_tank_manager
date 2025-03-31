@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class ScrollSelector<T> extends StatefulWidget {
-  // 既存のプロパティはそのまま
   final List<T> items;
   final String Function(T) labelBuilder;
   final String Function(T)? detailBuilder;
@@ -13,11 +12,7 @@ class ScrollSelector<T> extends StatefulWidget {
   final double? maxHeight;
   final Color? selectedColor;
   final Color? selectedTextColor;
-  final Color? unselectedColor;
   final Color? unselectedTextColor;
-  
-  // 並び順制御用の比較関数
-  final int Function(T a, T b)? sortComparator;
 
   const ScrollSelector({
     Key? key,
@@ -26,15 +21,13 @@ class ScrollSelector<T> extends StatefulWidget {
     this.detailBuilder,
     this.selectedItem,
     required this.onItemSelected,
-    this.visibleItemCount = 3, // デフォルトを3に変更
-    this.itemHeight = 35.0,
+    this.visibleItemCount = 3,
+    this.itemHeight = 40.0, // 少し高くして見やすく
     this.width,
     this.maxHeight,
     this.selectedColor,
     this.selectedTextColor,
-    this.unselectedColor,
     this.unselectedTextColor,
-    this.sortComparator,
   }) : super(key: key);
 
   @override
@@ -45,36 +38,27 @@ class _ScrollSelectorState<T> extends State<ScrollSelector<T>> {
   late final ScrollController _scrollController;
   late int _selectedIndex;
   bool _isScrolling = false;
-  late List<T> _sortedItems;
-
+  
   @override
   void initState() {
     super.initState();
     
-    // アイテムのソート
-    _sortItems();
-    
     // 初期選択アイテムのインデックスを設定
-    _selectedIndex = widget.selectedItem != null && _sortedItems.isNotEmpty
-        ? _sortedItems.indexOf(widget.selectedItem!)
+    _selectedIndex = widget.selectedItem != null && widget.items.isNotEmpty
+        ? widget.items.indexOf(widget.selectedItem!)
         : 0;
         
-    if (_selectedIndex < 0 || _selectedIndex >= _sortedItems.length) _selectedIndex = 0;
+    if (_selectedIndex < 0 || _selectedIndex >= widget.items.length) {
+      _selectedIndex = 0;
+    }
     
     // スクロールコントローラの初期化
     _scrollController = ScrollController(
-      initialScrollOffset: _sortedItems.isNotEmpty ? _selectedIndex * widget.itemHeight : 0.0,
+      initialScrollOffset: widget.items.isNotEmpty ? _selectedIndex * widget.itemHeight : 0.0,
     );
     
     // スクロール停止時のリスナーを追加
     _scrollController.addListener(_onScrollChanged);
-  }
-
-  void _sortItems() {
-    _sortedItems = List.from(widget.items);
-    if (widget.sortComparator != null) {
-      _sortedItems.sort(widget.sortComparator!);
-    }
   }
 
   @override
@@ -88,14 +72,9 @@ class _ScrollSelectorState<T> extends State<ScrollSelector<T>> {
   void didUpdateWidget(ScrollSelector<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     
-    // アイテムまたはソート条件が変わった場合は再ソート
-    if (widget.items != oldWidget.items || widget.sortComparator != oldWidget.sortComparator) {
-      _sortItems();
-    }
-    
     // 選択アイテムが外部から変更された場合
     if (widget.selectedItem != null && widget.selectedItem != oldWidget.selectedItem) {
-      final newIndex = _sortedItems.indexOf(widget.selectedItem!);
+      final newIndex = widget.items.indexOf(widget.selectedItem!);
       if (newIndex >= 0 && newIndex != _selectedIndex) {
         _selectedIndex = newIndex;
         _scrollToSelectedItem(animate: true);
@@ -104,39 +83,48 @@ class _ScrollSelectorState<T> extends State<ScrollSelector<T>> {
   }
 
   void _onScrollChanged() {
-    if (!_scrollController.hasClients || _isScrolling || _sortedItems.isEmpty) return;
+    if (!_scrollController.hasClients || _isScrolling || widget.items.isEmpty) return;
     
     // スクロール停止時の処理
     final itemIndex = (_scrollController.offset / widget.itemHeight).round();
     
-    if (itemIndex >= 0 && itemIndex < _sortedItems.length && itemIndex != _selectedIndex) {
+    if (itemIndex >= 0 && itemIndex < widget.items.length && itemIndex != _selectedIndex) {
       setState(() {
         _selectedIndex = itemIndex;
       });
       
       // 選択変更コールバックを呼び出し
-      widget.onItemSelected(_sortedItems[_selectedIndex]);
+      widget.onItemSelected(widget.items[_selectedIndex]);
     }
   }
 
-  void _scrollToSelectedItem({bool animate = true}) {
-    if (!_scrollController.hasClients) return;
+  /// 選択されたアイテムにスクロール
+  Future<void> _scrollToSelectedItem({bool animate = true}) {
+    if (!_scrollController.hasClients) return Future.value();
     
     final targetOffset = _selectedIndex * widget.itemHeight;
     
     _isScrolling = true;
     
     if (animate) {
-      _scrollController
+      return _scrollController
           .animateTo(
             targetOffset,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutQuart,
           )
-          .then((_) => _isScrolling = false);
+          .then((_) {
+            // アニメーション完了後に少し待ってからフラグを解除
+            return Future.delayed(const Duration(milliseconds: 100), () {
+              _isScrolling = false;
+            });
+          });
     } else {
       _scrollController.jumpTo(targetOffset);
-      _isScrolling = false;
+      // ジャンプ後に少し待ってからフラグを解除
+      return Future.delayed(const Duration(milliseconds: 100), () {
+        _isScrolling = false;
+      });
     }
   }
 
@@ -147,7 +135,6 @@ class _ScrollSelectorState<T> extends State<ScrollSelector<T>> {
     // デフォルトの色設定
     final selectedBgColor = widget.selectedColor ?? theme.colorScheme.primary;
     final selectedFgColor = widget.selectedTextColor ?? theme.colorScheme.onPrimary;
-    final unselectedBgColor = widget.unselectedColor ?? theme.colorScheme.surface.withOpacity(0.2);
     final unselectedFgColor = widget.unselectedTextColor ?? theme.colorScheme.onSurface;
     
     // 表示する合計の高さを計算
@@ -157,91 +144,91 @@ class _ScrollSelectorState<T> extends State<ScrollSelector<T>> {
       width: widget.width ?? double.infinity,
       height: totalHeight,
       decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.primary),
-        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Stack(
-        children: [
-          // 選択されたアイテムのハイライト表示
-          Positioned(
-            top: (widget.visibleItemCount > 1) 
-                ? ((widget.visibleItemCount ~/ 2) * widget.itemHeight) 
-                : 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: widget.itemHeight,
-              color: selectedBgColor,
-            ),
-          ),
-          
-          // スクロール可能なアイテムリスト
-          NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification is ScrollEndNotification) {
-                // スクロール終了時に最も近いアイテムにスナップ
-                final itemIndex = (_scrollController.offset / widget.itemHeight).round();
-                if (itemIndex != _selectedIndex) {
-                  _selectedIndex = itemIndex.clamp(0, _sortedItems.length - 1);
-                  _scrollToSelectedItem();
-                }
-              }
-              return false;
-            },
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: _sortedItems.length,
-              itemExtent: widget.itemHeight,
-              physics: const BouncingScrollPhysics(), // 自然なスクロール
-              itemBuilder: (context, index) {
-                final item = _sortedItems[index];
-                final isSelected = index == _selectedIndex;
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollEndNotification && !_isScrolling) {
+            _isScrolling = true;
+            
+            // スクロール終了時に最も近いアイテムにスナップ
+            final offset = _scrollController.offset;
+            final itemIndex = (offset / widget.itemHeight).round();
+            
+            if (itemIndex != _selectedIndex && 
+                itemIndex >= 0 && 
+                itemIndex < widget.items.length) {
+              setState(() {
+                _selectedIndex = itemIndex;
+              });
+              
+              // 選択変更コールバックを呼び出し
+              widget.onItemSelected(widget.items[_selectedIndex]);
+              
+              // 完全にスナップさせる
+              _scrollToSelectedItem();
+            } else {
+              // 現在の選択位置に戻す
+              _scrollToSelectedItem().then((_) {
+                _isScrolling = false;
+              });
+            }
+            
+            return true;
+          }
+          return false;
+        },
+        child: ListView.builder(
+          controller: _scrollController,
+          itemCount: widget.items.length,
+          itemExtent: widget.itemHeight,
+          physics: const ClampingScrollPhysics(), // バウンス効果を無効化
+          itemBuilder: (context, index) {
+            final item = widget.items[index];
+            final isSelected = index == _selectedIndex;
+            
+            String label = widget.labelBuilder(item);
+            String? detail = widget.detailBuilder?.call(item);
+            
+            // 表示テキストの統合 - detailがある場合は一行に統合
+            String displayText = detail != null 
+                ? '$label ($detail)' 
+                : label;
+            
+            return GestureDetector(
+              onTap: () {
+                if (_isScrolling) return;
                 
-                String label = widget.labelBuilder(item);
-                String? detail = widget.detailBuilder?.call(item);
-                
-                return InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                    _scrollToSelectedItem();
-                    widget.onItemSelected(item);
-                  },
-                  child: Container(
-                    height: widget.itemHeight,
-                    color: isSelected ? selectedBgColor : unselectedBgColor,
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: isSelected ? selectedFgColor : unselectedFgColor,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                            textAlign: TextAlign.start,
-                          ),
-                        ),
-                        if (detail != null)
-                          Text(
-                            detail,
-                            style: TextStyle(
-                              color: (isSelected ? selectedFgColor : unselectedFgColor).withOpacity(0.8),
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                            textAlign: TextAlign.end,
-                          ),
-                      ],
-                    ),
-                  ),
-                );
+                setState(() {
+                  _selectedIndex = index;
+                });
+                _scrollToSelectedItem();
+                widget.onItemSelected(item);
               },
-            ),
-          ),
-        ],
+              child: Container(
+                height: widget.itemHeight,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isSelected ? selectedBgColor : Colors.white,
+                  border: isSelected 
+                      ? Border.all(color: selectedBgColor, width: 2)
+                      : null,
+                ),
+                child: Text(
+                  displayText,
+                  style: TextStyle(
+                    color: isSelected ? selectedFgColor : unselectedFgColor,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 15,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

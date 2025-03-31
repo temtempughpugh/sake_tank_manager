@@ -92,6 +92,12 @@ class BrewingRecordController extends ChangeNotifier {
   
   /// 瓶詰め欠減率を取得
   double get bottlingShortagePercentage => _bottlingShortagePercentage;
+
+  /// 編集モードかどうか
+bool _isEditMode = false;
+
+/// 既存の記帳IDを更新する場合
+String? _existingRecordId;
   
   /// タンク移動リストを取得
   List<MovementStageData> get movementStages => _movementStages;
@@ -101,6 +107,9 @@ class BrewingRecordController extends ChangeNotifier {
   
   /// 計算が完了しているかどうかを取得
   bool get isCalculated => _isCalculated;
+
+  /// 編集モードかどうかを取得
+bool get isEditMode => _isEditMode;
   
   /// エラーメッセージを取得
   String? get errorMessage => _errorMessage;
@@ -391,6 +400,148 @@ class BrewingRecordController extends ChangeNotifier {
       _setError('記帳データの保存に失敗しました: $e');
     }
   }
+
+  /// 記帳を編集モードで設定
+void setEditMode(BrewingRecord record) {
+  _isEditMode = true;
+  _existingRecordId = record.id;
+  
+  // 既存の記録からデータを設定
+  if (record.dilutionStage != null) {
+    _dilutionTankNumber = record.dilutionStage!.tankNumber;
+    
+    // 既存の測定データから近似のデータを探す
+    final tank = _tankDataService.getTank(_dilutionTankNumber!);
+    if (tank != null) {
+      for (final data in tank.measurements) {
+        // 割水後の検尺値に近いものを探す
+        if ((data.dipstick - record.dilutionStage!.finalDipstick).abs() < 1.0) {
+          _finalMeasurement = data;
+        }
+        // 割水前の検尺値に近いものを探す
+        if ((data.dipstick - record.dilutionStage!.initialDipstick).abs() < 1.0) {
+          _initialMeasurement = data;
+        }
+      }
+    }
+    
+    // アルコール度数を設定
+    _initialAlcoholPercentage = record.dilutionStage!.initialAlcoholPercentage;
+    _finalAlcoholPercentage = record.dilutionStage!.finalAlcoholPercentage;
+    _dilutionWaterAmount = record.dilutionStage!.dilutionWaterAmount;
+    
+    // 欠減データを設定
+    _bottlingShortage = record.dilutionStage!.shortageDilution;
+    _bottlingShortagePercentage = record.dilutionStage!.shortageDilutionPercentage;
+    
+    // 計算完了フラグを設定
+    _isCalculated = true;
+  }
+  
+  // タンク移動情報を設定
+  _movementStages = record.movementStages.map((stage) => MovementStageData(
+    id: stage.id,
+    sourceTankNumber: stage.sourceTankNumber,
+    destinationTankNumber: stage.destinationTankNumber,
+    movementVolume: stage.movementVolume,
+    sourceDipstick: stage.sourceDipstick,
+    destinationDipstick: stage.destinationDipstick,
+    sourceRemainingVolume: stage.sourceRemainingVolume,
+    sourceRemainingDipstick: stage.sourceRemainingDipstick,
+    sourceInitialVolume: stage.sourceInitialVolume,
+    shortageMovement: stage.shortageMovement,
+    shortageMovementPercentage: stage.shortageMovementPercentage,
+    processName: stage.processName,
+    notes: stage.notes,
+  )).toList();
+  
+  notifyListeners();
+}
+
+/// 記帳データを更新
+Future<void> updateBrewingRecord() async {
+  if (!_isEditMode || _existingRecordId == null) {
+    throw Exception('編集モードではありません');
+  }
+  
+  // 以下は保存と同様の処理だが、IDは既存のものを使用
+  try {
+    if (_bottlingInfo == null) {
+      throw Exception('瓶詰め情報が設定されていません');
+    }
+    
+    if (_dilutionTankNumber == null) {
+      throw Exception('割水タンクが選択されていません');
+    }
+    
+    if (_initialMeasurement == null || _finalMeasurement == null) {
+      throw Exception('測定データが不足しています');
+    }
+    
+    if (!_isCalculated) {
+      throw Exception('計算が完了していません');
+    }
+
+    // 瓶詰め情報の更新
+    final bottlingUpdate = await updateBottlingInfo();
+    
+    // 割水ステージの作成
+    final dilutionStage = DilutionStage(
+      tankNumber: _dilutionTankNumber!,
+      initialVolume: _initialMeasurement!.volume,
+      initialDipstick: _initialMeasurement!.dipstick,
+      initialAlcoholPercentage: _initialAlcoholPercentage,
+      dilutionWaterAmount: _dilutionWaterAmount,
+      finalVolume: _finalMeasurement!.volume,
+      finalDipstick: _finalMeasurement!.dipstick,
+      finalAlcoholPercentage: _finalAlcoholPercentage,
+      bottlingTotalVolume: _bottlingTotalVolume,
+      shortageDilution: _bottlingShortage,
+      shortageDilutionPercentage: _bottlingShortagePercentage,
+    );
+    
+    // タンク移動ステージのリストを作成
+    final movementStages = _movementStages.map((stageData) {
+      return MovementStage(
+        id: stageData.id,
+        sourceTankNumber: stageData.sourceTankNumber,
+        destinationTankNumber: stageData.destinationTankNumber,
+        movementVolume: stageData.movementVolume,
+        sourceDipstick: stageData.sourceDipstick,
+        destinationDipstick: stageData.destinationDipstick,
+        sourceRemainingVolume: stageData.sourceRemainingVolume,
+        sourceRemainingDipstick: stageData.sourceRemainingDipstick,
+        sourceInitialVolume: stageData.sourceInitialVolume,
+        shortageMovement: stageData.shortageMovement,
+        shortageMovementPercentage: stageData.shortageMovementPercentage,
+        processName: stageData.processName,
+        notes: stageData.notes,
+      );
+    }).toList();
+    
+    // 記帳データの更新
+    final record = BrewingRecord(
+      id: _existingRecordId!,
+      bottlingInfoId: _bottlingInfo!.id,
+      isBottlingInfoUpdated: true,
+      bottlingUpdate: bottlingUpdate,
+      dilutionStage: dilutionStage,
+      movementStages: movementStages,
+      createdAt: DateTime.now(), // 更新日時を新しく
+      updatedAt: DateTime.now(),
+    );
+    
+    // 記帳データの更新
+    await _recordService.updateRecord(record);
+    
+    // 状態をリセット
+    _clearAll();
+    
+    notifyListeners();
+  } catch (e) {
+    _setError('記帳データの更新に失敗しました: $e');
+  }
+}
 
   /// 状態をすべてクリア
   void _clearAll() {

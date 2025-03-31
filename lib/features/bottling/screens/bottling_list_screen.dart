@@ -6,6 +6,7 @@ import '../controllers/bottling_manager.dart';
 import '../models/bottling_info.dart';
 import 'bottling_screen.dart';
 import '../../brewing/screens/brewing_record_screen.dart';
+import '../../../features/brewing/screens/brewing_timeline_screen.dart';  // タイムライン画面をインポート
 
 /// 瓶詰め一覧画面
 class BottlingListScreen extends StatefulWidget {
@@ -485,6 +486,18 @@ void _showBottlingDetails(BuildContext context, BottlingInfo bottlingInfo) {
         foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
       ),
     ),
+    ElevatedButton.icon(
+  onPressed: () {
+    Navigator.of(context).pop();
+    _navigateToTimeline(context, bottlingInfo);
+  },
+  icon: const Icon(Icons.timeline),
+  label: const Text('タイムライン表示'),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
+    foregroundColor: Theme.of(context).colorScheme.onTertiaryContainer,
+  ),
+),
   ],
 ),
                 ],
@@ -496,6 +509,8 @@ void _showBottlingDetails(BuildContext context, BottlingInfo bottlingInfo) {
     },
   );
 }
+
+
 
   /// 詳細アイテムを構築
   Widget _buildDetailItem(
@@ -618,4 +633,13 @@ void _showBottlingDetails(BuildContext context, BottlingInfo bottlingInfo) {
       }
     }
   }
+  void _navigateToTimeline(BuildContext context, BottlingInfo bottlingInfo) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => BrewingTimelineScreen(
+        bottlingInfoId: bottlingInfo.id,
+      ),
+    ),
+  );
+}
 }
