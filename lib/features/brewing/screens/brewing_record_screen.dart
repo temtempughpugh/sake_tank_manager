@@ -543,7 +543,8 @@ if (controller.isCalculated) ...[
   }
 
   /// タンク移動を追加
-  void _addTankMovement() async {
+  /// タンク移動を追加
+void _addTankMovement() async {
   if (!_controller.isCalculated || _controller.initialMeasurement == null) {
     ErrorHandler.showErrorSnackBar(
       context,
@@ -552,33 +553,38 @@ if (controller.isCalculated) ...[
     return;
   }
 
-  // 移動元タンクと数量を設定（前の移動があればその移動先を使用）
-  String sourceNumber;
-  double sourceVolume;
-  double sourceDipstick;
-  
+  // 移動元タンクと数量を設定（前の移動があればその移動先を今回の移動先に設定）
+  String? sourceNumber;      // 移動元タンク（nullableで選択させる）
+  double sourceVolume;       // 移動元の数量
+  double sourceDipstick;     // 移動元のディップスティック
+  String destinationNumber;  // 移動先タンク
+
   if (_controller.movementStages.isNotEmpty) {
-    // 既存の移動がある場合は最後の移動先を今回の移動元に設定
+    // 既存の移動がある場合は最後の移動先を今回の移動先に設定
     final lastMovement = _controller.movementStages.last;
-    sourceNumber = lastMovement.destinationTankNumber;
-    // 移動先のタンク情報を取得（実際はタンクデータサービスから取得すべき）
-    sourceVolume = lastMovement.movementVolume;
-    sourceDipstick = lastMovement.destinationDipstick;
+    destinationNumber = lastMovement.destinationTankNumber;
+    // 移動元は選択させるためnull
+    sourceNumber = null;
+    sourceVolume = 0.0;  // 初期値として0を設定（選択後に更新）
+    sourceDipstick = 0.0; // 初期値として0を設定（選択後に更新）
   } else {
-    // 最初の移動では割水タンクが移動元
-    sourceNumber = _controller.dilutionTankNumber!;
-    sourceVolume = _controller.initialMeasurement!.volume;
-    sourceDipstick = _controller.initialMeasurement!.dipstick;
+    // 最初の移動では割水タンクが移動先
+    destinationNumber = _controller.dilutionTankNumber!;
+    // 移動元は選択させるためnull
+    sourceNumber = null;
+    sourceVolume = _controller.initialMeasurement!.volume;  // 初期数量
+    sourceDipstick = _controller.initialMeasurement!.dipstick; // 初期ディップスティック
   }
 
-  // タンク移動画面へ遷移（引数を修正）
+  // タンク移動画面へ遷移
   final result = await Navigator.of(context).push<MovementStageData>(
     MaterialPageRoute(
       builder: (context) => TankMovementScreen(
-        sourceTankNumber: sourceNumber,  // 新規追加：移動元タンク
-        destinationTankNumber: "",  // 空にして選択させる
+        sourceTankNumber: sourceNumber,
+        destinationTankNumber: destinationNumber,
         initialVolume: sourceVolume,
         initialDipstick: sourceDipstick,
+        previousSourceInitialVolume: _controller.previousSourceInitialVolume, // 追加
       ),
     ),
   );

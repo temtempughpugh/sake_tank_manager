@@ -93,6 +93,12 @@ class BrewingRecordController extends ChangeNotifier {
   /// 瓶詰め欠減率を取得
   double get bottlingShortagePercentage => _bottlingShortagePercentage;
 
+  /// 前の移動のタンク総量
+  double? _previousSourceInitialVolume;
+
+  /// 前の移動のタンク総量を取得
+  double? get previousSourceInitialVolume => _previousSourceInitialVolume;
+
   /// 編集モードかどうか
 bool _isEditMode = false;
 
@@ -213,13 +219,19 @@ bool get isEditMode => _isEditMode;
   /// タンク移動ステージを追加
   void addMovementStage(MovementStageData movementStage) {
     _movementStages.add(movementStage);
+    // 追加した移動の sourceInitialVolume を保持
+    _previousSourceInitialVolume = movementStage.sourceInitialVolume;
     notifyListeners();
   }
 
-  /// タンク移動ステージを削除
+  /// タンク移動ステージを削除（既存メソッドを修正）
   void removeMovementStage(int index) {
     if (index >= 0 && index < _movementStages.length) {
       _movementStages.removeAt(index);
+      // リストが空になったら null に、それ以外は最後の sourceInitialVolume を設定
+      _previousSourceInitialVolume = _movementStages.isEmpty 
+          ? null 
+          : _movementStages.last.sourceInitialVolume;
       notifyListeners();
     }
   }
@@ -566,6 +578,7 @@ final record = BrewingRecord(
     _bottlingShortage = 0.0;
     _bottlingShortagePercentage = 0.0;
     _movementStages = [];
+    _previousSourceInitialVolume = null; // 追加
     _isCalculated = false;
     _errorMessage = null;
   }
