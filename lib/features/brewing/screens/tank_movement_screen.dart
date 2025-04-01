@@ -176,7 +176,12 @@ class _TankMovementScreenState extends State<TankMovementScreen> {
   child: Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      if (widget.sourceTankNumber == null) ...[
+      if (widget.previousSourceInitialVolume != null) ...[
+        Text(
+          '前タンク総量: ${widget.previousSourceInitialVolume!.toStringAsFixed(1)}L',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ] else if (widget.sourceTankNumber == null) ...[
         Text(
           '工程元容量: ${widget.initialVolume.toStringAsFixed(1)}L',
           style: Theme.of(context).textTheme.bodyMedium,
@@ -184,11 +189,6 @@ class _TankMovementScreenState extends State<TankMovementScreen> {
         const SizedBox(height: 4.0),
         Text(
           '工程元検尺値: ${widget.initialDipstick.toStringAsFixed(0)}mm',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-      ] else if (widget.previousSourceInitialVolume != null) ...[
-        Text(
-          '前タンク総量: ${widget.previousSourceInitialVolume!.toStringAsFixed(1)}L',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       ] else ...[
