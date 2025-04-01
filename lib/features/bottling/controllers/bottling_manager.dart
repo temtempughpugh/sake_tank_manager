@@ -1,3 +1,4 @@
+// lib/features/bottling/controllers/bottling_manager.dart
 import '../../../core/services/storage_service.dart';
 import '../models/bottling_info.dart';
 
@@ -7,7 +8,7 @@ class BottlingManager {
   static const String _storageKey = 'bottling_infos';
   
   /// ストレージサービス
-  final StorageService _storageService = StorageService();
+  final StorageService _storageService;
   
   /// 瓶詰め情報リスト（キャッシュ）
   List<BottlingInfo> _bottlingInfos = [];
@@ -15,8 +16,8 @@ class BottlingManager {
   /// 初期化済みフラグ
   bool _isInitialized = false;
 
-  /// コンストラクタ
-  BottlingManager();
+  /// コンストラクタ - StorageServiceを注入
+  BottlingManager(this._storageService);
 
   /// 初期化
   Future<void> initialize() async {

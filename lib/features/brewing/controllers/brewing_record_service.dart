@@ -1,3 +1,4 @@
+// lib/features/brewing/controllers/brewing_record_service.dart
 import '../../../core/services/storage_service.dart';
 import '../models/brewing_record.dart';
 import '../../bottling/models/bottling_info.dart';
@@ -5,29 +6,23 @@ import '../../bottling/controllers/bottling_manager.dart';
 
 /// 記帳データの保存・読み込みを管理するサービスクラス
 class BrewingRecordService {
-  /// 静的シングルトンインスタンス
-  static final BrewingRecordService _instance = BrewingRecordService._internal();
-
-  /// シングルトンのファクトリコンストラクタ
-  factory BrewingRecordService() => _instance;
-
-  /// 内部コンストラクタ
-  BrewingRecordService._internal();
-
   /// ストレージのキー
   static const String _storageKey = 'brewing_records';
   
   /// ストレージサービス
-  final StorageService _storageService = StorageService();
+  final StorageService _storageService;
   
   /// 瓶詰め情報マネージャー
-  final BottlingManager _bottlingManager = BottlingManager();
+  final BottlingManager _bottlingManager;
   
   /// 記帳データリスト（キャッシュ）
   List<BrewingRecord> _records = [];
   
   /// 初期化済みフラグ
   bool _isInitialized = false;
+
+  /// コンストラクタ - 依存サービスを注入
+  BrewingRecordService(this._storageService, this._bottlingManager);
 
   /// 初期化
   Future<void> initialize() async {

@@ -1,3 +1,4 @@
+// lib/core/services/service_locator.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,18 +25,18 @@ class ServiceLocator {
     final tankDataService = TankDataService();
     await tankDataService.initialize();
     
-    // CalculationServiceの初期化（TankDataServiceに依存）
+    // CalculationServiceの初期化
     final calculationService = CalculationService(tankDataService);
     
-    // DilutionPlanManagerの初期化（StorageServiceに依存）
+    // DilutionPlanManagerの初期化
     final dilutionPlanManager = DilutionPlanManager(storageService);
     await dilutionPlanManager.initialize();
     
-    // BottlingManagerの初期化（StorageServiceに依存）
+    // BottlingManagerの初期化
     final bottlingManager = BottlingManager(storageService);
     await bottlingManager.initialize();
     
-    // BrewingRecordServiceの初期化（StorageServiceとBottlingManagerに依存）
+    // BrewingRecordServiceの初期化
     final brewingRecordService = BrewingRecordService(
       storageService,
       bottlingManager,

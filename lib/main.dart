@@ -1,10 +1,9 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app.dart';
-import 'core/services/tank_data_service.dart';
-import 'core/services/storage_service.dart';
 import 'package:provider/provider.dart';
-import 'features/dilution/controllers/dilution_plan_manager.dart';
+import 'core/services/service_locator.dart';
 
 void main() async {
   // Flutterエンジンの初期化
@@ -16,40 +15,15 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // サービスの初期化
-  await _initializeServices();
-
-  // DilutionPlanManagerの初期化
-  final dilutionPlanManager = DilutionPlanManager();
-  await dilutionPlanManager.initialize();
+  // サービスプロバイダーのセットアップ
+  final providers = await ServiceLocator.setupProviders();
 
   // アプリの起動
   runApp(
     MultiProvider(
-      providers: [
-        Provider<DilutionPlanManager>.value(value: dilutionPlanManager),
-      ],
+      providers: providers,
       child: const SakeTankApp(),
     ),
   );
 }
 
-/// サービスの初期化
-Future<void> _initializeServices() async {
-  try {
-    // ストレージサービスの初期化
-    final storageService = StorageService();
-    await storageService.initialize();
-
-    // タンクデータサービスの初期化
-    final tankDataService = TankDataService();
-    await tankDataService.initialize();
-
-    print('サービスの初期化が完了しました');
-  } catch (e) {
-    print('サービスの初期化中にエラーが発生しました: $e');
-
-    // エラーダイアログを表示する代わりに、ここでは単にエラーをログに出力
-    // 本番環境では適切なエラーハンドリングが必要
-  }
-}

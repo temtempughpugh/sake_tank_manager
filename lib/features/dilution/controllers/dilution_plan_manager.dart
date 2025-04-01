@@ -1,3 +1,4 @@
+// lib/features/dilution/controllers/dilution_plan_manager.dart
 import '../../../core/services/storage_service.dart';
 import '../models/dilution_plan.dart';
 
@@ -7,7 +8,7 @@ class DilutionPlanManager {
   static const String _storageKey = 'dilution_plans';
   
   /// ストレージサービス
-  final StorageService _storageService = StorageService();
+  final StorageService _storageService;
   
   /// 計画リスト（キャッシュ）
   List<DilutionPlan> _plans = [];
@@ -15,8 +16,8 @@ class DilutionPlanManager {
   /// 初期化済みフラグ
   bool _isInitialized = false;
 
-  /// コンストラクタ
-  DilutionPlanManager();
+  /// コンストラクタ - StorageServiceを注入
+  DilutionPlanManager(this._storageService);
 
   /// 初期化
   Future<void> initialize() async {
@@ -140,10 +141,10 @@ class DilutionPlanManager {
 
   /// タンク番号で計画を検索
   Future<List<DilutionPlan>> findPlansByTank(String tankNumber) async {
-    if (!_isInitialized) await initialize();
-    
-    return List.unmodifiable(
-      _plans.where((plan) => plan.result.tankNumber == tankNumber),
-    );
-  }
+  if (!_isInitialized) await initialize();
+  
+  return List.unmodifiable(
+    _plans.where((plan) => plan.result.tankNumber == tankNumber),
+  );
+}
 }
