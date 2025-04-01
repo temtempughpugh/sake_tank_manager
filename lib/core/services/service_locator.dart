@@ -2,7 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+// 追加するインポート
+import 'package:provider/single_child_widget.dart';
 import 'tank_data_service.dart';
 import 'calculation_service.dart';
 import 'storage_service.dart';

@@ -4,11 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../shared/widgets/app_drawer.dart';
-import '../../../core/utils/formatters.dart';
-import '../../../core/utils/validators.dart';
 import '../../../core/utils/error_handler.dart';
 import '../controllers/bottling_controller.dart';
 import '../models/bottling_info.dart';
+import '../controllers/bottling_manager.dart';
+
 
 /// 瓶詰め管理画面
 class BottlingScreen extends StatefulWidget {
@@ -52,7 +52,9 @@ class _BottlingScreenState extends State<BottlingScreen> {
     super.initState();
     
     // コントローラーの初期化
-    _controller = BottlingController();
+  _controller = BottlingController(
+  bottlingManager: Provider.of<BottlingManager>(context, listen: false)
+);
     
     // 編集モードかどうかをチェック
     if (widget.bottlingInfo != null) {

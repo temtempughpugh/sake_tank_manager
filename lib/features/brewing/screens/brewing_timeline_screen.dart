@@ -6,6 +6,7 @@ import '../../../core/utils/error_handler.dart';
 import '../controllers/brewing_timeline_controller.dart';
 import '../widgets/timeline_item_widget.dart';
 import 'brewing_record_screen.dart';
+import '../controllers/brewing_record_service.dart';
 
 /// 記帳サポートのタイムライン表示画面
 class BrewingTimelineScreen extends StatefulWidget {

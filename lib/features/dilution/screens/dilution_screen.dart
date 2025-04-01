@@ -12,6 +12,9 @@ import '../models/dilution_plan.dart';
 import '../../../core/models/approximation_pair.dart';
 import '../../../shared/widgets/compact_approximation_chips.dart';
 import '../controllers/dilution_plan_manager.dart';
+import '../../../core/services/tank_data_service.dart';
+import '../../../core/services/calculation_service.dart';
+import '../../../core/services/storage_service.dart';
 
 
 /// 割水計算画面
@@ -65,8 +68,12 @@ class _DilutionScreenState extends State<DilutionScreen> {
     final planManager = Provider.of<DilutionPlanManager>(context, listen: false);
     
     // コントローラーの初期化
-    _controller = DilutionController(planManager: planManager);
-    
+    _controller = DilutionController(
+  tankDataService: Provider.of<TankDataService>(context, listen: false),
+  calculationService: Provider.of<CalculationService>(context, listen: false),
+  storageService: Provider.of<StorageService>(context, listen: false),
+  planManager: Provider.of<DilutionPlanManager>(context, listen: false),
+);
     // データの読み込み
     _controller.loadInitialData().then((_) {
       // 編集モードの場合、計画のデータをロード

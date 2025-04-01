@@ -6,7 +6,9 @@ import '../controllers/bottling_manager.dart';
 import '../models/bottling_info.dart';
 import 'bottling_screen.dart';
 import '../../brewing/screens/brewing_record_screen.dart';
-import '../../../features/brewing/screens/brewing_timeline_screen.dart';  // タイムライン画面をインポート
+import '../../../features/brewing/screens/brewing_timeline_screen.dart'; 
+import 'package:provider/provider.dart';
+import '../../../core/services/storage_service.dart'; // タイムライン画面をインポート
 
 /// 瓶詰め一覧画面
 class BottlingListScreen extends StatefulWidget {
@@ -22,7 +24,7 @@ class _BottlingListScreenState extends State<BottlingListScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   /// 瓶詰め情報マネージャー
-  final BottlingManager _bottlingManager = BottlingManager();
+late BottlingManager _bottlingManager;
   
   /// 瓶詰め情報リスト
   List<BottlingInfo> _bottlingInfos = [];
@@ -31,10 +33,13 @@ class _BottlingListScreenState extends State<BottlingListScreen> {
   bool _isLoading = true;
 
   @override
-  void initState() {
-    super.initState();
-    _loadBottlingInfos();
-  }
+void initState() {
+  super.initState();
+  _bottlingManager = BottlingManager(
+    Provider.of<StorageService>(context, listen: false)
+  );
+  _loadBottlingInfos();
+}
 
   /// 瓶詰め情報を読み込む
   Future<void> _loadBottlingInfos() async {

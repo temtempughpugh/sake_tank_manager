@@ -6,6 +6,8 @@ import '../shared/widgets/status_chip.dart';
 import '../shared/widgets/section_card.dart';
 import '../shared/widgets/app_drawer.dart';
 import '../features/brewing/screens/brewing_record_list_screen.dart';
+import 'package:provider/provider.dart';
+import '../core/services/storage_service.dart';
 
 /// ホーム画面
 class HomeScreen extends StatefulWidget {
@@ -30,12 +32,14 @@ class HomeScreenState extends State<HomeScreen> {
   /// 読み込み中フラグ
   bool _isLoading = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _planManager = DilutionPlanManager(); // インスタンス作成
-    _loadData();
-  }
+ @override
+void initState() {
+  super.initState();
+  _planManager = DilutionPlanManager(
+    Provider.of<StorageService>(context, listen: false)
+  );
+  _loadData();
+}
 
   /// データの読み込み
   Future<void> _loadData() async {

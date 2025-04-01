@@ -7,6 +7,10 @@ import '../../../shared/widgets/approximation_chips.dart';
 import '../controllers/tank_reference_controller.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/services/tank_data_service.dart';
+import '../../../core/services/calculation_service.dart';
+import '../../../core/services/storage_service.dart';
+
 
 /// タンク早見表画面
 class TankReferenceScreen extends StatefulWidget {

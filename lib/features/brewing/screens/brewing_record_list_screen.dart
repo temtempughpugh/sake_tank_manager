@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/error_handler.dart';
 import '../controllers/brewing_record_service.dart';
 import '../../bottling/models/bottling_info.dart';
 import 'brewing_record_screen.dart';
+import '../../../core/services/storage_service.dart';
+import '../../bottling/controllers/bottling_manager.dart';
 
 /// 記帳サポート一覧画面
 class BrewingRecordListScreen extends StatefulWidget {
@@ -19,8 +22,7 @@ class _BrewingRecordListScreenState extends State<BrewingRecordListScreen> {
   /// Scaffoldキー (ドロワー表示用)
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
-  /// 記帳サービス
-  final BrewingRecordService _recordService = BrewingRecordService();
+late BrewingRecordService _recordService;
   
   /// 瓶詰め情報リスト (未記帳)
   List<BottlingInfo> _bottlingInfos = [];
@@ -34,17 +36,15 @@ class _BrewingRecordListScreenState extends State<BrewingRecordListScreen> {
   /// 検索コントローラー
   final TextEditingController _searchController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadBottlingInfos();
-    
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text;
-      });
-    });
-  }
+ @override
+void initState() {
+  super.initState();
+  _recordService = BrewingRecordService(
+    storageService: Provider.of<StorageService>(context, listen: false),
+    bottlingManager: Provider.of<BottlingManager>(context, listen: false),
+  );
+  _loadBottlingInfos();
+}
 
   @override
   void dispose() {
