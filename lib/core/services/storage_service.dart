@@ -3,22 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// データの永続化を管理するサービスクラス
 class StorageService {
-  /// 静的シングルトンインスタンス
-  static final StorageService _instance = StorageService._internal();
-
-  /// シングルトンのファクトリコンストラクタ
-  factory StorageService() => _instance;
-
-  /// 内部コンストラクタ
-  StorageService._internal();
-
   /// SharedPreferencesのインスタンス
-  SharedPreferences? _prefs;
+  final SharedPreferences _prefs;
 
-  /// 初期化
-  Future<void> initialize() async {
-    _prefs = await SharedPreferences.getInstance();
-  }
+  /// コンストラクタ - SharedPreferencesを注入
+  StorageService(this._prefs);
 
   // =================
   // 基本的なデータ操作
@@ -28,8 +17,7 @@ class StorageService {
   /// - [key]: 保存キー
   /// - [value]: 保存する文字列
   Future<bool> setString(String key, String value) async {
-    if (_prefs == null) await initialize();
-    return _prefs!.setString(key, value);
+    return _prefs.setString(key, value);
   }
 
   /// 文字列データを取得
@@ -37,16 +25,14 @@ class StorageService {
   /// - [defaultValue]: デフォルト値（キーが存在しない場合）
   /// - 戻り値: 保存されている文字列またはデフォルト値
   String getString(String key, {String defaultValue = ''}) {
-    if (_prefs == null) return defaultValue;
-    return _prefs!.getString(key) ?? defaultValue;
+    return _prefs.getString(key) ?? defaultValue;
   }
 
   /// 整数データを保存
   /// - [key]: 保存キー
   /// - [value]: 保存する整数
   Future<bool> setInt(String key, int value) async {
-    if (_prefs == null) await initialize();
-    return _prefs!.setInt(key, value);
+    return _prefs.setInt(key, value);
   }
 
   /// 整数データを取得
@@ -54,16 +40,14 @@ class StorageService {
   /// - [defaultValue]: デフォルト値（キーが存在しない場合）
   /// - 戻り値: 保存されている整数またはデフォルト値
   int getInt(String key, {int defaultValue = 0}) {
-    if (_prefs == null) return defaultValue;
-    return _prefs!.getInt(key) ?? defaultValue;
+    return _prefs.getInt(key) ?? defaultValue;
   }
 
   /// 真偽値データを保存
   /// - [key]: 保存キー
   /// - [value]: 保存する真偽値
   Future<bool> setBool(String key, bool value) async {
-    if (_prefs == null) await initialize();
-    return _prefs!.setBool(key, value);
+    return _prefs.setBool(key, value);
   }
 
   /// 真偽値データを取得
@@ -71,24 +55,21 @@ class StorageService {
   /// - [defaultValue]: デフォルト値（キーが存在しない場合）
   /// - 戻り値: 保存されている真偽値またはデフォルト値
   bool getBool(String key, {bool defaultValue = false}) {
-    if (_prefs == null) return defaultValue;
-    return _prefs!.getBool(key) ?? defaultValue;
+    return _prefs.getBool(key) ?? defaultValue;
   }
 
   /// キーが存在するかを確認
   /// - [key]: 確認するキー
   /// - 戻り値: キーが存在するかどうか
   bool containsKey(String key) {
-    if (_prefs == null) return false;
-    return _prefs!.containsKey(key);
+    return _prefs.containsKey(key);
   }
 
   /// 指定したキーのデータを削除
   /// - [key]: 削除するキー
   /// - 戻り値: 削除が成功したかどうか
   Future<bool> remove(String key) async {
-    if (_prefs == null) await initialize();
-    return _prefs!.remove(key);
+    return _prefs.remove(key);
   }
 
   // =================
@@ -127,34 +108,33 @@ class StorageService {
   /// - [key]: 保存キー
   /// - [list]: 保存するオブジェクトリスト
   /// - [toMap]: 各オブジェクトをMap<String, dynamic>に変換する関数
-  /// オブジェクトリストを保存
-Future<bool> setObjectList<T>(
-  String key, 
-  List<T> list, 
-  Map<String, dynamic> Function(T item) toMap,
-) async {
-  final jsonList = list.map((item) => toMap(item)).toList();
-  print('保存するデータ数: ${jsonList.length}');
-  return setObject(key, jsonList);
-}
-
-/// オブジェクトリストを取得
-List<T> getObjectList<T>(
-  String key, 
-  T Function(Map<String, dynamic> map) fromMap,
-) {
-  final jsonList = getObject(key) as List<dynamic>?;
-  if (jsonList == null) {
-    print('データがロードできませんでした: $key');
-    return [];
+  Future<bool> setObjectList<T>(
+    String key, 
+    List<T> list, 
+    Map<String, dynamic> Function(T item) toMap,
+  ) async {
+    final jsonList = list.map((item) => toMap(item)).toList();
+    print('保存するデータ数: ${jsonList.length}');
+    return setObject(key, jsonList);
   }
-  
-  final result = jsonList
-      .map((item) => fromMap(item as Map<String, dynamic>))
-      .toList();
-  print('読み込んだデータ数: ${result.length}');
-  return result;
-}
+
+  /// オブジェクトリストを取得
+  List<T> getObjectList<T>(
+    String key, 
+    T Function(Map<String, dynamic> map) fromMap,
+  ) {
+    final jsonList = getObject(key) as List<dynamic>?;
+    if (jsonList == null) {
+      print('データがロードできませんでした: $key');
+      return [];
+    }
+    
+    final result = jsonList
+        .map((item) => fromMap(item as Map<String, dynamic>))
+        .toList();
+    print('読み込んだデータ数: ${result.length}');
+    return result;
+  }
 
   // =================
   // アプリ設定
@@ -183,15 +163,16 @@ List<T> getObjectList<T>(
   bool getLastInputMode() {
     return getBool('is_using_dipstick', defaultValue: true);
   }
+  
   /// 逆引きモード設定を保存
-/// - [isReverseMode]: 逆引きモードかどうか
-Future<bool> setReverseMode(bool isReverseMode) async {
-  return setBool('is_reverse_mode', isReverseMode);
-}
+  /// - [isReverseMode]: 逆引きモードかどうか
+  Future<bool> setReverseMode(bool isReverseMode) async {
+    return setBool('is_reverse_mode', isReverseMode);
+  }
 
-/// 逆引きモード設定を取得
-/// - 戻り値: 逆引きモードかどうか
-bool getReverseMode() {
-  return getBool('is_reverse_mode', defaultValue: false);
-}
+  /// 逆引きモード設定を取得
+  /// - 戻り値: 逆引きモードかどうか
+  bool getReverseMode() {
+    return getBool('is_reverse_mode', defaultValue: false);
+  }
 }

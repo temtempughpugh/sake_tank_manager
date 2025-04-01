@@ -7,20 +7,14 @@ import '../models/measurement_data.dart';
 
 /// タンクデータを管理するサービスクラス
 class TankDataService {
-  /// 静的シングルトンインスタンス
-  static final TankDataService _instance = TankDataService._internal();
-
-  /// シングルトンのファクトリコンストラクタ
-  factory TankDataService() => _instance;
-
-  /// 内部コンストラクタ
-  TankDataService._internal();
-
   /// 読み込み済みのタンクデータ
   final Map<String, Tank> _tanks = {};
 
   /// タンクデータの読み込み完了状態
   bool _isInitialized = false;
+
+  /// コンストラクタ
+  TankDataService();
 
   /// タンクデータの初期化
   /// - CSVからタンクデータを読み込み
