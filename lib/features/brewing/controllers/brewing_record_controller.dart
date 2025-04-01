@@ -13,13 +13,13 @@ import 'brewing_record_service.dart';
 /// 記帳サポート画面の状態管理とビジネスロジックを担当するコントローラークラス
 class BrewingRecordController extends ChangeNotifier {
   /// 記帳サービス
-  final BrewingRecordService _recordService = BrewingRecordService();
+  final BrewingRecordService _recordService;
   
   /// タンクデータサービス
-  final TankDataService _tankDataService = TankDataService();
+  final TankDataService _tankDataService;
   
   /// 計算サービス
-  final CalculationService _calculationService = CalculationService();
+  final CalculationService _calculationService;
   
   /// 瓶詰め情報
   BottlingInfo? _bottlingInfo;
@@ -63,6 +63,25 @@ class BrewingRecordController extends ChangeNotifier {
   /// エラーメッセージ
   String? _errorMessage;
 
+  /// 編集モードかどうか
+  bool _isEditMode = false;
+
+  /// 既存の記帳IDを更新する場合
+  String? _existingRecordId;
+  
+  /// 前の移動のタンク総量
+  double? _previousSourceInitialVolume;
+
+  /// コンストラクタ - 依存サービスを注入
+  BrewingRecordController({
+    required BrewingRecordService recordService,
+    required TankDataService tankDataService,
+    required CalculationService calculationService,
+  }) : 
+    _recordService = recordService,
+    _tankDataService = tankDataService,
+    _calculationService = calculationService;
+
   /// 瓶詰め情報を取得
   BottlingInfo? get bottlingInfo => _bottlingInfo;
   
@@ -92,19 +111,10 @@ class BrewingRecordController extends ChangeNotifier {
   
   /// 瓶詰め欠減率を取得
   double get bottlingShortagePercentage => _bottlingShortagePercentage;
-
-  /// 前の移動のタンク総量
-  double? _previousSourceInitialVolume;
-
+  
   /// 前の移動のタンク総量を取得
   double? get previousSourceInitialVolume => _previousSourceInitialVolume;
 
-  /// 編集モードかどうか
-bool _isEditMode = false;
-
-/// 既存の記帳IDを更新する場合
-String? _existingRecordId;
-  
   /// タンク移動リストを取得
   List<MovementStageData> get movementStages => _movementStages;
   
@@ -115,7 +125,7 @@ String? _existingRecordId;
   bool get isCalculated => _isCalculated;
 
   /// 編集モードかどうかを取得
-bool get isEditMode => _isEditMode;
+  bool get isEditMode => _isEditMode;
   
   /// エラーメッセージを取得
   String? get errorMessage => _errorMessage;
@@ -125,7 +135,6 @@ bool get isEditMode => _isEditMode;
     if (_dilutionTankNumber == null) return null;
     return _tankDataService.getTank(_dilutionTankNumber!);
   }
-
   /// 初期化
   Future<void> initialize() async {
     _setLoading(true);

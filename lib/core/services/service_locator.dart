@@ -36,12 +36,12 @@ class ServiceLocator {
     final bottlingManager = BottlingManager(storageService);
     await bottlingManager.initialize();
     
-    // BrewingRecordServiceの初期化
-    final brewingRecordService = BrewingRecordService(
-      storageService,
-      bottlingManager,
-    );
-    await brewingRecordService.initialize();
+    // BrewingRecordServiceの初期化（修正）
+final brewingRecordService = BrewingRecordService(
+  storageService: storageService,
+  bottlingManager: bottlingManager,
+);
+await brewingRecordService.initialize();
     
     // プロバイダーのリストを返す
     return [

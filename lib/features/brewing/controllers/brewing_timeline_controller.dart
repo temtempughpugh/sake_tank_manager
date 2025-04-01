@@ -63,7 +63,7 @@ class ShortageData {
 /// 記帳タイムラインのコントローラークラス
 class BrewingTimelineController extends ChangeNotifier {
   /// 記帳サービス
-  final BrewingRecordService _recordService = BrewingRecordService();
+  final BrewingRecordService _recordService;
   
   /// 瓶詰め情報ID
   String? _bottlingInfoId;
@@ -82,6 +82,11 @@ class BrewingTimelineController extends ChangeNotifier {
   
   /// エラーメッセージ
   String? _errorMessage;
+
+  /// コンストラクタ - 依存サービスを注入
+  BrewingTimelineController({
+    required BrewingRecordService recordService,
+  }) : _recordService = recordService;
 
   /// 瓶詰め情報を取得
   BottlingInfo? get bottlingInfo => _bottlingInfo;

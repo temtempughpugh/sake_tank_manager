@@ -9,13 +9,13 @@ import '../../../core/services/storage_service.dart';
 /// タンク早見表のコントローラー
 class TankReferenceController extends ChangeNotifier {
   /// タンクデータサービス
-  final TankDataService _tankDataService = TankDataService();
+  final TankDataService _tankDataService;
   
   /// 計算サービス
-  final CalculationService _calculationService = CalculationService();
+  final CalculationService _calculationService;
   
   /// ストレージサービス
-  final StorageService _storageService = StorageService();
+  final StorageService _storageService;
 
   /// 選択されたタンク番号
   String? _selectedTank;
@@ -31,6 +31,16 @@ class TankReferenceController extends ChangeNotifier {
   
   /// エラーメッセージ
   String? _errorMessage;
+
+  /// コンストラクタ - 依存するサービスを注入
+  TankReferenceController({
+    required TankDataService tankDataService,
+    required CalculationService calculationService,
+    required StorageService storageService,
+  }) : 
+    _tankDataService = tankDataService,
+    _calculationService = calculationService,
+    _storageService = storageService;
 
   /// 選択されたタンク番号を取得
   String? get selectedTank => _selectedTank;

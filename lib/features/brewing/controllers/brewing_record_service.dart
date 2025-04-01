@@ -22,7 +22,12 @@ class BrewingRecordService {
   bool _isInitialized = false;
 
   /// コンストラクタ - 依存サービスを注入
-  BrewingRecordService(this._storageService, this._bottlingManager);
+  BrewingRecordService({
+    required StorageService storageService,
+    required BottlingManager bottlingManager,
+  }) : 
+    _storageService = storageService,
+    _bottlingManager = bottlingManager;
 
   /// 初期化
   Future<void> initialize() async {
@@ -80,6 +85,46 @@ class BrewingRecordService {
         .toList();
   }
 
+  /// タンク番号で醸造記録を取得（BrewingRecordManagerから追加）
+  Future<List<BrewingRecord>> getRecordsByTankNumber(String tankNumber) async {
+    if (!_isInitialized) await initialize();
+    
+    final filtered = _records.where((record) => 
+        (record.dilutionStage?.tankNumber == tankNumber) ||
+        record.movementStages.any((stage) => 
+            stage.sourceTankNumber == tankNumber || 
+            stage.destinationTankNumber == tankNumber)
+    ).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+    return filtered;
+  }
+
+  /// ID指定で醸造記録を取得（BrewingRecordManagerから追加）
+  Future<BrewingRecord?> getRecordById(String id) async {
+    if (!_isInitialized) await initialize();
+    
+    try {
+      return _records.firstWhere((record) => record.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// 日付範囲で醸造記録を検索（BrewingRecordManagerから追加）
+  Future<List<BrewingRecord>> findRecordsByDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    if (!_isInitialized) await initialize();
+    
+    return _records
+        .where((record) => 
+            record.createdAt.isAfter(startDate.subtract(const Duration(days: 1))) && 
+            record.createdAt.isBefore(endDate.add(const Duration(days: 1))))
+        .toList();
+  }
+
   /// 記帳データを追加
   Future<void> addRecord(BrewingRecord record) async {
     if (!_isInitialized) await initialize();
@@ -95,31 +140,39 @@ class BrewingRecordService {
 
   /// 記帳データを更新
   Future<void> updateRecord(BrewingRecord record) async {
-  if (!_isInitialized) await initialize();
-  
-  final index = _records.indexWhere((r) => r.id == record.id);
-  if (index == -1) {
-    // 見つからない場合はエラーではなく新規追加として処理
-    _records.add(record);
-  } else {
-    // 既存のレコードを更新
-    _records[index] = record;
+    if (!_isInitialized) await initialize();
+    
+    final index = _records.indexWhere((r) => r.id == record.id);
+    if (index == -1) {
+      // 見つからない場合はエラーではなく新規追加として処理
+      _records.add(record);
+    } else {
+      // 既存のレコードを更新
+      _records[index] = record;
+    }
+    
+    // 更新後必ず保存
+    await _saveRecords();
+    
+    // 瓶詰め情報の更新も確実に実行
+    if (record.isBottlingInfoUpdated && record.bottlingUpdate != null) {
+      await _updateBottlingInfo(record);
+    }
   }
-  
-  // 更新後必ず保存
-  await _saveRecords();
-  
-  // 瓶詰め情報の更新も確実に実行
-  if (record.isBottlingInfoUpdated && record.bottlingUpdate != null) {
-    await _updateBottlingInfo(record);
-  }
-}
 
   /// 記帳データを削除
   Future<void> deleteRecord(String id) async {
     if (!_isInitialized) await initialize();
     
     _records.removeWhere((record) => record.id == id);
+    await _saveRecords();
+  }
+
+  /// 瓶詰め情報に関連する醸造記録を全て削除（BrewingRecordManagerから追加）
+  Future<void> deleteRecordsByBottlingId(String bottlingId) async {
+    if (!_isInitialized) await initialize();
+    
+    _records.removeWhere((record) => record.bottlingInfoId == bottlingId);
     await _saveRecords();
   }
 

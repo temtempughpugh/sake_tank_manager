@@ -31,31 +31,35 @@ class _TankReferenceScreenState extends State<TankReferenceScreen> with SingleTi
   final TextEditingController _volumeController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    
-    // タブコントローラーの初期化
-    _tabController = TabController(length: 2, vsync: this);
-    
-    // コントローラーの初期化
-    _controller = TankReferenceController();
-    
-    // データの読み込み
-    _controller.loadInitialData().then((_) {
-      // 前回選択されていたタンクがあれば復元
-      final lastTank = _controller.lastSelectedTank;
-      if (lastTank != null && lastTank.isNotEmpty) {
-        _controller.selectTank(lastTank);
-      }
-    });
-    
-    // タブコントローラーのリスナー設定
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) {
-        _controller.setDipstickMode(_tabController.index == 0);
-      }
-    });
-  }
+void initState() {
+  super.initState();
+  
+  // タブコントローラーの初期化
+  _tabController = TabController(length: 2, vsync: this);
+  
+  // コントローラーの初期化（依存性注入を使用）
+  _controller = TankReferenceController(
+    tankDataService: Provider.of<TankDataService>(context, listen: false),
+    calculationService: Provider.of<CalculationService>(context, listen: false),
+    storageService: Provider.of<StorageService>(context, listen: false),
+  );
+  
+  // データの読み込み
+  _controller.loadInitialData().then((_) {
+    // 前回選択されていたタンクがあれば復元
+    final lastTank = _controller.lastSelectedTank;
+    if (lastTank != null && lastTank.isNotEmpty) {
+      _controller.selectTank(lastTank);
+    }
+  });
+  
+  // タブコントローラーのリスナー設定
+  _tabController.addListener(() {
+    if (_tabController.indexIsChanging) {
+      _controller.setDipstickMode(_tabController.index == 0);
+    }
+  });
+}
 
   @override
   void dispose() {

@@ -30,15 +30,17 @@ class _BrewingTimelineScreenState extends State<BrewingTimelineScreen> {
   late BrewingTimelineController _controller;
 
   @override
-  void initState() {
-    super.initState();
-    
-    // コントローラーの初期化
-    _controller = BrewingTimelineController();
-    
-    // データの読み込み
-    _controller.initialize(widget.bottlingInfoId);
-  }
+void initState() {
+  super.initState();
+  
+  // コントローラーの初期化（依存性注入を使用）
+  _controller = BrewingTimelineController(
+    recordService: Provider.of<BrewingRecordService>(context, listen: false),
+  );
+  
+  // データの読み込み
+  _controller.initialize(widget.bottlingInfoId);
+}
 
   @override
   Widget build(BuildContext context) {

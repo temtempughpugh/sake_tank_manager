@@ -12,6 +12,8 @@ import '../controllers/brewing_record_controller.dart';
 import 'tank_movement_screen.dart';
 import '../models/brewing_record.dart';
 import '../controllers/brewing_record_service.dart';
+import '../../../core/services/tank_data_service.dart';
+import '../../../core/services/calculation_service.dart';
 
 /// 記帳サポートメイン画面
 class BrewingRecordScreen extends StatefulWidget {
@@ -52,8 +54,12 @@ class _BrewingRecordScreenState extends State<BrewingRecordScreen> {
 void initState() {
   super.initState();
   
-  // コントローラーの初期化
-  _controller = BrewingRecordController();
+  // コントローラーの初期化（依存性注入を使用）
+  _controller = BrewingRecordController(
+    recordService: Provider.of<BrewingRecordService>(context, listen: false),
+    tankDataService: Provider.of<TankDataService>(context, listen: false),
+    calculationService: Provider.of<CalculationService>(context, listen: false),
+  );
   
   // データの読み込み
   _controller.initialize().then((_) {

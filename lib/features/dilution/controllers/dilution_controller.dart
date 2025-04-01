@@ -12,22 +12,27 @@ import '../models/dilution_plan.dart';
 /// 割水計算のコントローラー
 class DilutionController extends ChangeNotifier {
   /// タンクデータサービス
-  final TankDataService _tankDataService = TankDataService();
+  final TankDataService _tankDataService;
   
   /// 計算サービス
-  final CalculationService _calculationService = CalculationService();
+  final CalculationService _calculationService;
   
   /// ストレージサービス
-  final StorageService _storageService = StorageService();
+  final StorageService _storageService;
   
   /// 割水計画マネージャー
-  late DilutionPlanManager _planManager;
+  final DilutionPlanManager _planManager;
 
-  // コンストラクタを変更
-  DilutionController({required DilutionPlanManager planManager}) {
+DilutionController({
+    required TankDataService tankDataService,
+    required CalculationService calculationService,
+    required StorageService storageService,
+    required DilutionPlanManager planManager,
+  }) : 
+    _tankDataService = tankDataService,
+    _calculationService = calculationService,
+    _storageService = storageService,
     _planManager = planManager;
-  }
-
   /// 選択されたタンク番号
   String? _selectedTank;
   

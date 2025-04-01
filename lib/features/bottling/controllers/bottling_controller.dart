@@ -5,10 +5,15 @@ import 'bottling_manager.dart';
 /// 瓶詰め情報入力コントローラー
 class BottlingController extends ChangeNotifier {
   /// 瓶詰め情報マネージャー
-  final BottlingManager _bottlingManager = BottlingManager();
+  final BottlingManager _bottlingManager;
   
   /// 編集中の瓶詰め情報
   BottlingInfo? _currentBottlingInfo;
+
+  BottlingController({
+    required BottlingManager bottlingManager,
+  }) : _bottlingManager = bottlingManager;
+
   
   /// 編集中の瓶種リスト
   final List<BottleEntry> _bottleEntries = [];
