@@ -48,35 +48,35 @@ class _BottlingScreenState extends State<BottlingScreen> {
   final TextEditingController _remainingController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    
-    // コントローラーの初期化
+void initState() {
+  super.initState();
+  
+  // コントローラーの初期化
   _controller = BottlingController(
-  bottlingManager: Provider.of<BottlingManager>(context, listen: false)
-);
+    bottlingManager: Provider.of<BottlingManager>(context, listen: false),
+  );
+  
+  // 編集モードかどうかをチェック
+  if (widget.bottlingInfo != null) {
+    _controller.setUpdateMode(widget.bottlingInfo!);
     
-    // 編集モードかどうかをチェック
-    if (widget.bottlingInfo != null) {
-      _controller.setUpdateMode(widget.bottlingInfo!);
-      
-      // テキストフィールドに値を設定
-      _sakeNameController.text = widget.bottlingInfo!.sakeName;
-      _alcoholController.text = widget.bottlingInfo!.alcoholPercentage.toString();
-      
-      if (widget.bottlingInfo!.temperature != null) {
-        _temperatureController.text = widget.bottlingInfo!.temperature.toString();
-      }
-      
-      _remainingController.text = widget.bottlingInfo!.remainingAmount.toString();
+    // テキストフィールドに値を設定
+    _sakeNameController.text = widget.bottlingInfo!.sakeName;
+    _alcoholController.text = widget.bottlingInfo!.alcoholPercentage.toString();
+    
+    if (widget.bottlingInfo!.temperature != null) {
+      _temperatureController.text = widget.bottlingInfo!.temperature.toString();
     }
     
-    // リスナーの追加
-    _sakeNameController.addListener(_updateSakeName);
-    _alcoholController.addListener(_updateAlcoholPercentage);
-    _temperatureController.addListener(_updateTemperature);
-    _remainingController.addListener(_updateRemainingAmount);
+    _remainingController.text = widget.bottlingInfo!.remainingAmount.toString();
   }
+  
+  // リスナーの追加
+  _sakeNameController.addListener(_updateSakeName);
+  _alcoholController.addListener(_updateAlcoholPercentage);
+  _temperatureController.addListener(_updateTemperature);
+  _remainingController.addListener(_updateRemainingAmount);
+}
 
   @override
   void dispose() {

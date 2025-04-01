@@ -32,12 +32,14 @@ class HomeScreenState extends State<HomeScreen> {
   /// 読み込み中フラグ
   bool _isLoading = true;
 
- @override
+@override
 void initState() {
   super.initState();
+  
   _planManager = DilutionPlanManager(
     Provider.of<StorageService>(context, listen: false)
   );
+  
   _loadData();
 }
 

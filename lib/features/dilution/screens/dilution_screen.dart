@@ -61,37 +61,37 @@ class _DilutionScreenState extends State<DilutionScreen> {
   bool _isFinalValueConfirmed = false;
 
   @override
-  void initState() {
-    super.initState();
-    
-    // Providerから共有のDilutionPlanManagerを取得
-    final planManager = Provider.of<DilutionPlanManager>(context, listen: false);
-    
-    // コントローラーの初期化
-    _controller = DilutionController(
-  tankDataService: Provider.of<TankDataService>(context, listen: false),
-  calculationService: Provider.of<CalculationService>(context, listen: false),
-  storageService: Provider.of<StorageService>(context, listen: false),
-  planManager: Provider.of<DilutionPlanManager>(context, listen: false),
-);
-    // データの読み込み
-    _controller.loadInitialData().then((_) {
-      // 編集モードの場合、計画のデータをロード
-      if (widget.plan != null) {
-        _loadPlanData(widget.plan!);
-      } else {
-        // 前回選択されていたタンクがあれば復元
-        final lastTank = _controller.lastSelectedTank;
-        if (lastTank != null && lastTank.isNotEmpty) {
-          _controller.selectTank(lastTank);
-        }
+void initState() {
+  super.initState();
+  
+  // Providerから共有のDilutionPlanManagerを取得
+  
+  // コントローラーの初期化
+  _controller = DilutionController(
+    tankDataService: Provider.of<TankDataService>(context, listen: false),
+    calculationService: Provider.of<CalculationService>(context, listen: false),
+    storageService: Provider.of<StorageService>(context, listen: false),
+    planManager: Provider.of<DilutionPlanManager>(context, listen: false),
+  );
+  
+  // データの読み込み
+  _controller.loadInitialData().then((_) {
+    // 編集モードの場合、計画のデータをロード
+    if (widget.plan != null) {
+      _loadPlanData(widget.plan!);
+    } else {
+      // 前回選択されていたタンクがあれば復元
+      final lastTank = _controller.lastSelectedTank;
+      if (lastTank != null && lastTank.isNotEmpty) {
+        _controller.selectTank(lastTank);
       }
-    });
-    
-    // リスナーの設定
-    _dipstickController.addListener(_onDipstickChanged);
-    _volumeController.addListener(_onVolumeChanged);
-  }
+    }
+  });
+  
+  // リスナーの設定
+  _dipstickController.addListener(_onDipstickChanged);
+  _volumeController.addListener(_onVolumeChanged);
+}
 
   /// 計画データを読み込んで画面に反映
   /// 計画データを読み込んで画面に反映

@@ -1,4 +1,6 @@
+// lib/shared/widgets/tank_selector.dart (修正版)
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';  // Provider追加
 import '../../core/models/tank.dart';
 import '../../core/models/tank_category.dart';
 import '../../core/services/tank_data_service.dart';
@@ -10,12 +12,9 @@ class TankSelector extends StatelessWidget {
   
   /// タンクが選択された時のコールバック
   final Function(String) onTankSelected;
-  
-  /// タンクデータサービス
-  final TankDataService _tankDataService = TankDataService();
 
   /// コンストラクタ
-  TankSelector({
+  const TankSelector({
     Key? key,
     this.selectedTankNumber,
     required this.onTankSelected,
@@ -23,6 +22,9 @@ class TankSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Providerから初期化済みのTankDataServiceを取得
+    final tankDataService = Provider.of<TankDataService>(context, listen: false);
+    
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       child: Padding(
@@ -35,7 +37,7 @@ class TankSelector extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12.0),
-            _buildTankDropdown(context),
+            _buildTankDropdown(context, tankDataService),
           ],
         ),
       ),
@@ -43,9 +45,9 @@ class TankSelector extends StatelessWidget {
   }
 
   /// タンク選択ドロップダウンを構築
-  Widget _buildTankDropdown(BuildContext context) {
+  Widget _buildTankDropdown(BuildContext context, TankDataService tankDataService) {
     // タンクをカテゴリ別に分類
-    final Map<TankCategory, List<Tank>> tanksByCategory = _tankDataService.tanksByCategory;
+    final Map<TankCategory, List<Tank>> tanksByCategory = tankDataService.tanksByCategory;
     
     return DropdownButtonFormField<String>(
       decoration: const InputDecoration(

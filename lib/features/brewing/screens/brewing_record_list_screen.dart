@@ -36,16 +36,18 @@ late BrewingRecordService _recordService;
   /// 検索コントローラー
   final TextEditingController _searchController = TextEditingController();
 
- @override
+@override
 void initState() {
   super.initState();
+  
+  // Provider経由でサービスを取得
   _recordService = BrewingRecordService(
     storageService: Provider.of<StorageService>(context, listen: false),
     bottlingManager: Provider.of<BottlingManager>(context, listen: false),
   );
+  
   _loadBottlingInfos();
 }
-
   @override
   void dispose() {
     _searchController.dispose();

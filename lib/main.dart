@@ -15,15 +15,28 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // サービスプロバイダーのセットアップ
-  final providers = await ServiceLocator.setupProviders();
+  try {
+    // サービスプロバイダーのセットアップ
+    // すべてのサービスが完全に初期化されるまで待機
+    final providers = await ServiceLocator.setupProviders();
+    print('サービスの初期化が完了しました');
 
-  // アプリの起動
-  runApp(
-    MultiProvider(
-      providers: providers,
-      child: const SakeTankApp(),
-    ),
-  );
+    // アプリの起動（初期化完了後）
+    runApp(
+      MultiProvider(
+        providers: providers,
+        child: const SakeTankApp(),
+      ),
+    );
+  } catch (e) {
+    print('サービスの初期化中にエラーが発生しました: $e');
+    // エラーが発生した場合のフォールバックUI
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text('起動準備中にエラーが発生しました: $e'),
+        ),
+      ),
+    ));
+  }
 }
-

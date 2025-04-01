@@ -50,7 +50,7 @@ class _BrewingRecordScreenState extends State<BrewingRecordScreen> {
   /// 現在のページインデックス
   int _currentPageIndex = 0;
 
-  @override
+@override
 void initState() {
   super.initState();
   

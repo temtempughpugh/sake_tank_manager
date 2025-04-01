@@ -32,12 +32,15 @@ late BottlingManager _bottlingManager;
   /// 読み込み中フラグ
   bool _isLoading = true;
 
-  @override
+@override
 void initState() {
   super.initState();
+  
+  // Provider経由でサービスを取得
   _bottlingManager = BottlingManager(
-    Provider.of<StorageService>(context, listen: false)
+    Provider.of<StorageService>(context, listen: false),
   );
+  
   _loadBottlingInfos();
 }
 
