@@ -550,6 +550,8 @@ if (controller.isCalculated) ...[
 
   /// タンク移動を追加
   /// タンク移動を追加
+// lib/features/brewing/screens/brewing_record_screen.dart の _addTankMovement() メソッド
+
 void _addTankMovement() async {
   if (!_controller.isCalculated || _controller.initialMeasurement == null) {
     ErrorHandler.showErrorSnackBar(
@@ -567,7 +569,7 @@ void _addTankMovement() async {
   double? previousSourceInitialVolume; // 前の移動元タンク総量
 
   if (_controller.movementStages.isNotEmpty) {
-    // 既存の移動がある場合は最後の移動先を今回の移動元に設定
+    // 既存の移動がある場合は最後の移動元を今回の移動先に設定
     final lastMovement = _controller.movementStages.last;
     destinationNumber = lastMovement.sourceTankNumber;
     

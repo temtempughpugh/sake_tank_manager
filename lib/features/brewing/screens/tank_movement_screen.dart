@@ -90,42 +90,50 @@ class _TankMovementScreenState extends State<TankMovementScreen> {
   }
 
   /// 移動計算を実行
-  void _calculateMovement() {
-    if (_sourceTankNumber == null || _movementMeasurement == null) {
-      ErrorHandler.showErrorSnackBar(
-        context,
-        '移動元タンクと移動数量を選択してください',
-      );
-      return;
-    }
-    
-    if (_destinationTankNumber == null || _destinationTankNumber!.isEmpty) {
-      ErrorHandler.showErrorSnackBar(
-        context,
-        '移動先タンクを選択してください',
-      );
-      return;
-    }
+  // lib/features/brewing/screens/tank_movement_screen.dart の _calculateMovement() メソッド内
 
-if (widget.previousSourceInitialVolume == null) {
-  // 1回目の移動 - 蔵出し数量を基準に
-  _shortageMovement = _movementMeasurement!.volume - widget.initialVolume;
-} else {
-  // 2回目以降の移動 - 前回の移動元タンク総量を基準に
-  _shortageMovement = _movementMeasurement!.volume - widget.previousSourceInitialVolume!;
-}
-    
-    // 移動前タンク総量の計算
-    if (_remainingMeasurement != null) {
-      _sourceInitialVolume = _movementMeasurement!.volume + _remainingMeasurement!.volume;
-    } else {
-      _sourceInitialVolume = _movementMeasurement!.volume;
-    }
-    
-    setState(() {
-      _isCalculated = true;
-    });
+void _calculateMovement() {
+  if (_sourceTankNumber == null || _movementMeasurement == null) {
+    ErrorHandler.showErrorSnackBar(
+      context,
+      '移動元タンクと移動数量を選択してください',
+    );
+    return;
   }
+  
+  if (_destinationTankNumber == null || _destinationTankNumber!.isEmpty) {
+    ErrorHandler.showErrorSnackBar(
+      context,
+      '移動先タンクを選択してください',
+    );
+    return;
+  }
+
+  // 明確に1回目と2回目以降を区別して欠減計算
+  if (widget.previousSourceInitialVolume == null) {
+    // 1回目の移動 - 蔵出し数量を基準に
+    _shortageMovement = _movementMeasurement!.volume - widget.initialVolume;
+    print('1回目の移動: 基準値=${widget.initialVolume}L, 移動量=${_movementMeasurement!.volume}L');
+  } else {
+    // 2回目以降の移動 - 前回の移動元タンク総量を基準に
+    _shortageMovement = _movementMeasurement!.volume - widget.previousSourceInitialVolume!;
+    print('2回目以降の移動: 基準値=${widget.previousSourceInitialVolume}L, 移動量=${_movementMeasurement!.volume}L');
+  }
+  
+  // 欠減率の計算（小数点以下2桁まで）
+  _shortageMovementPercentage = (_shortageMovement / _movementMeasurement!.volume) * 100;
+  
+  // 移動前タンク総量の計算
+  if (_remainingMeasurement != null) {
+    _sourceInitialVolume = _movementMeasurement!.volume + _remainingMeasurement!.volume;
+  } else {
+    _sourceInitialVolume = _movementMeasurement!.volume;
+  }
+  
+  setState(() {
+    _isCalculated = true;
+  });
+}
 
   /// 移動情報を作成して返す
   MovementStageData _createMovementStageData() {
@@ -286,40 +294,45 @@ if (widget.previousSourceInitialVolume == null) {
             
             // 欠減計算
             if (_movementMeasurement != null)
-              SectionCard(
-                title: '欠減計算(タンク移動)',
-                icon: Icons.calculate,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '移動数量: ${_movementMeasurement!.volume.toStringAsFixed(1)}L',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 4.0),
-                    Text(
-                      '蔵出し数量: ${widget.initialVolume.toStringAsFixed(1)}L',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 4.0),
-                    
-                    // 計算ボタン
-                    if (!_isCalculated)
-                      ElevatedButton(
-                        onPressed: _calculateMovement,
-                        child: const Text('欠減計算'),
-                      )
-                    else
-                      Text(
-                        '欠減量: ${_shortageMovement.toStringAsFixed(1)}L (${_shortageMovementPercentage.toStringAsFixed(2)}%)',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: _shortageMovement < 0 ? Colors.red : Colors.orange[700],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              // lib/features/brewing/screens/tank_movement_screen.dart のUI表示部分
+
+SectionCard(
+  title: '欠減計算(タンク移動)',
+  icon: Icons.calculate,
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        '移動数量: ${_movementMeasurement!.volume.toStringAsFixed(1)}L',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+      const SizedBox(height: 4.0),
+      // 1回目と2回目以降で表示を切り替え
+      Text(
+        widget.previousSourceInitialVolume == null
+            ? '蔵出し数量: ${widget.initialVolume.toStringAsFixed(1)}L'
+            : '前タンク総量: ${widget.previousSourceInitialVolume!.toStringAsFixed(1)}L',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+      const SizedBox(height: 4.0),
+      
+      // 計算ボタン
+      if (!_isCalculated)
+        ElevatedButton(
+          onPressed: _calculateMovement,
+          child: const Text('欠減計算'),
+        )
+      else
+        Text(
+          '欠減量: ${_shortageMovement.toStringAsFixed(1)}L (${_shortageMovementPercentage.toStringAsFixed(2)}%)',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: _shortageMovement < 0 ? Colors.red : Colors.orange[700],
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+    ],
+  ),
+),
             
             const SizedBox(height: 16.0),
             

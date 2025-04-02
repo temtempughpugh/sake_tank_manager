@@ -234,12 +234,14 @@ timelineItems.add(
     type: TimelineItemType.movement,
     title: '${movement.processName ?? "タンク移動"} #${i + 1}',
     contentLines: [
-      '移動元: ${movement.sourceTankNumber}',
-      ' >>移動前: ${movement.sourceDipstick.toStringAsFixed(0)}mm / ${movement.sourceInitialVolume.toStringAsFixed(1)}L',
-      ' >>移動量: ${movement.movementVolume.toStringAsFixed(1)}L',
-      ' >>移動後: ${movement.sourceRemainingDipstick.toStringAsFixed(0)}mm / ${movement.sourceRemainingVolume.toStringAsFixed(1)}L(残量)',
-      '移動先: ${movement.destinationTankNumber}（検尺値: ${movement.destinationDipstick.toStringAsFixed(0)}mm）',
-    ],
+    '移動元: ${movement.sourceTankNumber}',
+    // ここで検尺値とL値の表示順序を修正（mm→L）
+    ' >>移動前: ${movement.sourceDipstick.toStringAsFixed(0)}mm / ${movement.sourceInitialVolume.toStringAsFixed(1)}L',
+    ' >>移動量: ${movement.movementVolume.toStringAsFixed(1)}L',
+    ' >>移動後: ${movement.sourceRemainingDipstick.toStringAsFixed(0)}mm / ${movement.sourceRemainingVolume.toStringAsFixed(1)}L(残量)',
+    // 移動先情報も同様に表示順序を修正
+    '移動先: ${movement.destinationTankNumber}（検尺値: ${movement.destinationDipstick.toStringAsFixed(0)}mm）',
+  ],
     isLast: i == record.movementStages.length - 1 && (i + 1 == record.movementStages.length),
     onTap: () => _showMovementDetails(context, movement),
   ),
