@@ -107,11 +107,13 @@ class _TankMovementScreenState extends State<TankMovementScreen> {
       return;
     }
 
-    // 欠減量の計算
-    _shortageMovement = _movementMeasurement!.volume - widget.initialVolume;
-    
-    // 欠減率の計算（小数点以下2桁まで）
-    _shortageMovementPercentage = (_shortageMovement / _movementMeasurement!.volume) * 100;
+if (widget.previousSourceInitialVolume == null) {
+  // 1回目の移動 - 蔵出し数量を基準に
+  _shortageMovement = _movementMeasurement!.volume - widget.initialVolume;
+} else {
+  // 2回目以降の移動 - 前回の移動元タンク総量を基準に
+  _shortageMovement = _movementMeasurement!.volume - widget.previousSourceInitialVolume!;
+}
     
     // 移動前タンク総量の計算
     if (_remainingMeasurement != null) {
